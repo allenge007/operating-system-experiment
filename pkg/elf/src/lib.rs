@@ -130,7 +130,16 @@ fn load_segment(
 
     // FIXME: handle page table flags with segment flags
     unimplemented!("Handle page table flags with segment flags!");
-
+    // 根据 ELF 段标志设置页表标志
+    let seg_flags = segment.flags();
+    if seg_flags.0 & 0x2 != 0 {
+        // PF_W (0x2) 表示可写
+        page_table_flags |= PageTableFlags::WRITABLE;
+    }
+    if seg_flags.0 & 0x1 == 0 {
+        // 如果没有 PF_X (0x1)，则设置 NX
+        page_table_flags |= PageTableFlags::NO_EXECUTE;
+    }
     trace!("Segment page table flag: {:?}", page_table_flags);
 
     let start_page = Page::containing_address(virt_start_addr);
