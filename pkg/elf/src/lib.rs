@@ -129,17 +129,22 @@ fn load_segment(
     let mut page_table_flags = PageTableFlags::PRESENT;
 
     // FIXME: handle page table flags with segment flags
-    unimplemented!("Handle page table flags with segment flags!");
+    // unimplemented!("Handle page table flags with segment flags!");
     // 根据 ELF 段标志设置页表标志
     let seg_flags = segment.flags();
     if seg_flags.0 & 0x2 != 0 {
         // PF_W (0x2) 表示可写
-        page_table_flags |= PageTableFlags::WRITABLE;
+        page_table_flags.insert(PageTableFlags::WRITABLE);
     }
     if seg_flags.0 & 0x1 == 0 {
         // 如果没有 PF_X (0x1)，则设置 NX
-        page_table_flags |= PageTableFlags::NO_EXECUTE;
+        page_table_flags.insert(PageTableFlags::NO_EXECUTE);
     }
+    if seg_flags.0 & 0x4 != 0 {
+        // PF_R (0x4) 表示可读
+        page_table_flags.insert(PageTableFlags::USER_ACCESSIBLE);
+    }
+    
     trace!("Segment page table flag: {:?}", page_table_flags);
 
     let start_page = Page::containing_address(virt_start_addr);

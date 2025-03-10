@@ -66,12 +66,16 @@ fn efi_main() -> Status {
     }
     // FIXME: map physical memory to specific virtual address offset
     let mut frame_allocator = UEFIFrameAllocator;
-    
+    elf::map_physical_memory(
+        config.physical_memory_offset,
+        max_phys_addr,
+        &mut page_table,
+        &mut frame_allocator,
+    );
     // FIXME: load and map the kernel elf file
-
     let _ = load_elf(&elf_file, config.physical_memory_offset, &mut page_table, &mut frame_allocator)
         .expect("Failed to load ELF file");
-
+    info!("Kernel ELF loaded");
     // FIXME: map kernel stack
     elf::map_range(
         config.kernel_stack_address,
