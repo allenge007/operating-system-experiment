@@ -10,7 +10,7 @@ use alloc::boxed::Box;
 use alloc::vec;
 use uefi::{entry, Status};
 use uefi::mem::memory_map::MemoryMap;
-use elf::{load_elf, map_range};
+use elf::{load_elf, map_range, map_physical_memory};
 use x86_64::structures::paging::{frame, FrameAllocator};
 use xmas_elf::ElfFile;
 use x86_64::registers::control::*;
@@ -66,7 +66,7 @@ fn efi_main() -> Status {
     }
     // FIXME: map physical memory to specific virtual address offset
     let mut frame_allocator = UEFIFrameAllocator;
-    elf::map_physical_memory(
+    map_physical_memory(
         config.physical_memory_offset,
         max_phys_addr,
         &mut page_table,
@@ -77,7 +77,7 @@ fn efi_main() -> Status {
         .expect("Failed to load ELF file");
     info!("Kernel ELF loaded");
     // FIXME: map kernel stack
-    elf::map_range(
+    map_range(
         config.kernel_stack_address,
         config.kernel_stack_size,
         &mut page_table,
@@ -108,6 +108,7 @@ fn efi_main() -> Status {
         memory_map: mmap.entries().copied().collect(),
         physical_memory_offset: config.physical_memory_offset,
         system_table,
+        log_level: "trace",
     };
 
     // align stack to 8 bytes
