@@ -243,7 +243,7 @@ dependencies = [
 
 [[package]]
 name = "ysos_boot"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "arrayvec",
  "log",
@@ -255,7 +255,7 @@ dependencies = [
 
 [[package]]
 name = "ysos_elf"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "log",
  "x86_64",
@@ -264,7 +264,7 @@ dependencies = [
 
 [[package]]
 name = "ysos_kernel"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bitflags 2.9.0",
  "libm",
