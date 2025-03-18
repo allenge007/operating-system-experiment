@@ -1,7 +1,31 @@
 use core::fmt;
 use core::arch::asm;
 use x86::io::{inb, outb};
+use bitflags::bitflags;
 
+bitflags! {
+    /// UART 16550 的 LCR (Line Control Register) 寄存器控制标志
+    pub struct LcrFlags: u8 {
+        /// DLAB: Divisor Latch Access Bit, 用于访问波特率分频寄存器
+        const DLAB           = 0x80;
+        /// 设置字长 5 位 (0b00)
+        const WORD_LENGTH_5  = 0x00;
+        /// 设置字长 6 位 (0b01)
+        const WORD_LENGTH_6  = 0x01;
+        /// 设置字长 7 位 (0b10)
+        const WORD_LENGTH_7  = 0x02;
+        /// 设置字长 8 位 (0b11)
+        const WORD_LENGTH_8  = 0x03;
+        /// STOP: 设置停止位，若设置则使用 2 个停止位（5位字长时为 1.5 个停止位）
+        const STOP_BITS      = 0x04;
+        /// PARITY_ENABLE: 启用奇偶校验
+        const PARITY_ENABLE  = 0x08;
+        /// EVEN_PARITY: 偶校验（与 PARITY_ENABLE 配合使用）
+        const EVEN_PARITY    = 0x10;
+        /// STICK_PARITY: 固定奇偶模式（与 PARITY_ENABLE 配合使用）
+        const STICK_PARITY   = 0x20;
+    }
+}
 /// A port-mapped UART 16550 serial interface.
 pub struct SerialPort {
     port: u16,

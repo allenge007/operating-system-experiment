@@ -15,6 +15,8 @@ lazy_static! {
             exceptions::register_idt(&mut idt);
             // TODO: clock::register_idt(&mut idt);
             // TODO: serial::register_idt(&mut idt);
+            clock::register_idt(&mut idt);
+            serial::register_idt(&mut idt);
         }
         idt
     };
@@ -25,9 +27,8 @@ pub fn init() {
     IDT.load();
 
     // FIXME: check and init APIC
-
     // FIXME: enable serial irq with IO APIC (use enable_irq)
-
+    
     info!("Interrupts Initialized.");
 }
 
