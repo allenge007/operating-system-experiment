@@ -33,7 +33,7 @@ lazy_static! {
 
         // FIXME: fill tss.interrupt_stack_table with the static stack buffers like above
         // You can use `tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize]`
-        tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
+        tss.interrupt_stack_table[(DOUBLE_FAULT_IST_INDEX) as usize] = {
             const STACK_SIZE: usize = IST_SIZES[1];
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
             let stack_start = VirtAddr::from_ptr(addr_of_mut!(STACK));
@@ -45,7 +45,8 @@ lazy_static! {
             );
             stack_end
         };
-        tss.interrupt_stack_table[PAGE_FAULT_IST_INDEX as usize] = {
+        
+        tss.interrupt_stack_table[(PAGE_FAULT_IST_INDEX) as usize] = {
             const STACK_SIZE: usize = IST_SIZES[2];
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
             let stack_start = VirtAddr::from_ptr(addr_of_mut!(STACK));

@@ -40,20 +40,22 @@ impl SerialPort {
     pub fn init(&self) {
         // FIXME: Initialize the serial port
         unsafe {
-        // Disable interrupts
-        outb(self.port + 1, 0x00);
-        // Enable DLAB (set baud rate divisor)
-        outb(self.port + 3, 0x80);
-        // Set divisor to 1 (lo byte) 115200 baud
-        outb(self.port + 0, 0x01);
-        // Set divisor hi byte to 0
-        outb(self.port + 1, 0x00);
-        // 8 bits, no parity, one stop bit
-        outb(self.port + 3, 0x03);
-        // Enable FIFO, clear them, with 14-byte threshold
-        outb(self.port + 2, 0xC7);
-        // IRQs enabled, RTS/DSR set
-        outb(self.port + 4, 0x0B);
+            // Disable interrupts
+            outb(self.port + 1, 0x00);
+            // Enable DLAB (set baud rate divisor)
+            outb(self.port + 3, 0x80);
+            // Set divisor to 1 (lo byte) 115200 baud
+            outb(self.port + 0, 0x01);
+            // Set divisor hi byte to 0
+            outb(self.port + 1, 0x00);
+            // 8 bits, no parity, one stop bit
+            outb(self.port + 3, 0x03);
+            // Enable FIFO, clear them, with 14-byte threshold
+            outb(self.port + 2, 0xC7);
+            // IRQs enabled, RTS/DSR set
+            outb(self.port + 4, 0x0B);
+            // Enable interrupts
+            outb(self.port + 1, 0x01);
         }
     }
 

@@ -15,7 +15,7 @@ parser.add_argument('-m', '--memory', default='96M',
                     help='Set memory size for qemu, default is 96M')
 parser.add_argument('-o', '--output', default='-nographic',
                     help='Set output for qemu, default is -nographic')
-parser.add_argument('-p', '--profile', type=str, choices=['release', 'debug'],
+parser.add_argument('-p', '--profile', type=str, choices=['release', 'debug', 'release-with-debug'],
                     default='release', help='Set build profile for kernel')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='Enable verbose output')
@@ -138,9 +138,16 @@ def build():
     # build kernel
     kernel = os.path.join(os.getcwd(), 'pkg', 'kernel')
     info('Building', 'kernel...')
-    profile = '--release' if args.profile == 'release' else '--profile=release-with-debug'
-    execute_command([cargo_exe, 'build', profile], kernel)
-    profile_dir = 'release' if args.profile == 'release' else 'release-with-debug'
+    if args.profile == 'release':
+        profile = '--release'
+        profile_dir = 'release'
+    elif args.profile == 'release-with-debug':
+        profile = '--profile=release-with-debug'
+        profile_dir = 'release-with-debug'
+    else:
+        profile = ''
+        profile_dir = 'debug'
+    execute_command([cargo_exe, 'build', profile] if profile != '' else [cargo_exe, 'build'], kernel)
     compile_output = os.path.join(
         os.getcwd(), 'target', 'x86_64-unknown-none', profile_dir, 'ysos_kernel')
     copy_to_esp(compile_output, 'KERNEL.ELF')

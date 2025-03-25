@@ -1,14 +1,32 @@
-use crate::memory::*;
-use x86_64::registers::control::Cr2;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
+use super::consts::*;
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
+use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
 pub unsafe fn register_idt(idt: &mut InterruptDescriptorTable) {
-    idt.divide_error.set_handler_fn(divide_error_handler);
-    idt.double_fault
-        .set_handler_fn(double_fault_handler)
-        .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
-    idt.page_fault
-        .set_handler_fn(page_fault_handler)
-        .set_stack_index(gdt::PAGE_FAULT_IST_INDEX);
+    idt[Interrupts::IrqBase as u8 + Irq::Timer as u8]
+        .set_handler_fn(clock_handler);
+}
 
+pub extern "x86-interrupt" fn clock_handler(_sf: InterruptStackFrame) {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        if inc_counter() % 0x10000 == 0 {
+            print!("\r\x1B[K");
+            info!("Tick! @{}", read_counter());
+        }
+        super::ack();
+    });
+}
+
+static COUNTER: AtomicU64 = AtomicU64::new(0);
+
+#[inline]
+pub fn read_counter() -> u64 {
+    // FIXME: load counter value
+    COUNTER.load(Ordering::SeqCst)
+}
+
+#[inline]
+pub fn inc_counter() -> u64 {
+    // FIXME: read counter value and increase it
+    COUNTER.fetch_add(1, Ordering::SeqCst)
 }
