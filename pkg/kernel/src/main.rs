@@ -8,7 +8,6 @@ extern crate log;
 extern crate ysos_kernel as ysos;
 
 use core::arch::asm;
-// use ysos_kernel as ysos;
 use ysos_kernel::drivers::*;
 use ysos_kernel::interrupt;
 
@@ -18,7 +17,6 @@ pub fn kernel_main(boot_info: &'static boot::BootInfo) -> ! {
     ysos::init(boot_info);
     info!("Hello World from YatSenOS v2!");
     loop {
-
         // debug!("This is a debug message");
         // trace!("This is a trace message");
         // info!("This is an info message");
@@ -30,7 +28,7 @@ pub fn kernel_main(boot_info: &'static boot::BootInfo) -> ! {
         match input.trim() {
             "exit" => break,
             _ => {
-                println!("You said: {}", input);
+                println!("😭: command not found: {}", input);
                 println!("The counter value is {}", interrupt::clock::read_counter());
             }
         }
