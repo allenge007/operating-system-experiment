@@ -5,7 +5,7 @@ use ysos::*;
 use ysos_kernel as ysos;
 
 extern crate alloc;
-
+use log::*;
 boot::entry_point!(kernel_main);
 
 pub fn kernel_main(boot_info: &'static boot::BootInfo) -> ! {
@@ -20,7 +20,6 @@ pub fn kernel_main(boot_info: &'static boot::BootInfo) -> ! {
     let mut test_num = 0;
 
     loop {
-        print!("[>] ");
         let line = input::get_line();
         match line.trim() {
             "exit" => break,

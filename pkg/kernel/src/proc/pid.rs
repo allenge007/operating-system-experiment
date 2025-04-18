@@ -6,6 +6,8 @@ pub struct ProcessId(pub u16);
 impl ProcessId {
     pub fn new() -> Self {
         // FIXME: Get a unique PID
+        static PID: AtomicU16 = AtomicU16::new(1);
+        ProcessId(PID.fetch_add(1, Ordering::Relaxed))
     }
 }
 

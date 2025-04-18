@@ -5,6 +5,7 @@ use core::hint::spin_loop;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::format;
+use uefi::proto::debug;
 use core::str;
 use alloc::borrow::ToOwned;
 use crossbeam_queue::ArrayQueue;
@@ -53,16 +54,14 @@ pub fn pop_key() -> Key {
 
 pub fn get_line() -> String {
     let mut input_buffer: Vec<u8> = Vec::with_capacity(128);
-    let prompt = "> ";
+    let prompt = "[>] ";
     let mut history_index: Option<usize> = None;
     // 记录光标在 input_buffer 中的字节索引（必须始终在有效字符边界上）
     let mut cursor_pos: usize = 0;
 
     print!("{}", prompt);
-
     loop {
         let key = pop_key();
-
         // 检查是否为转义序列（ESC 开头）
         if key == 0x1B {
             let second = pop_key();
@@ -187,6 +186,6 @@ pub fn get_line() -> String {
     if !final_command.is_empty() {
         HISTORY.lock().push(final_command.clone());
     }
-
+    debug!("Input command: {}", final_command);
     final_command
 }

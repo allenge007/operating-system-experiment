@@ -1,14 +1,19 @@
 mod context;
 mod data;
-mod manager;
+pub mod manager;
 mod paging;
 mod pid;
 mod process;
 mod processor;
+mod vm;
 
 use manager::*;
 use process::*;
+use crate::interrupt::ack;
 use crate::memory::PAGE_SIZE;
+use crate::alloc::string::ToString;
+use crate::alloc::sync::Arc;
+use crate::proc::vm::ProcessVm;
 
 use alloc::string::String;
 pub use context::ProcessContext;
@@ -35,7 +40,15 @@ pub fn init() {
     trace!("Init kernel vm: {:#?}", proc_vm);
 
     // kernel process
-    let kproc = { /* FIXME: create kernel process */ };
+    // let kproc = { /* FIXME: create kernel process */ };
+    let kproc = Process::new(
+        "kernel".to_string(),
+        None,
+        Some(proc_vm),
+        None,
+    );
+    
+    kproc.write().resume();
     manager::init(kproc);
 
     info!("Process Manager Initialized.");
@@ -47,10 +60,16 @@ pub fn switch(context: &mut ProcessContext) {
         //      - save current process's context
         //      - handle ready queue update
         //      - restore next process's context
+        let manager = get_process_manager();
+        manager.save_current(context);
+        let pid = processor::get_pid();
+        manager.push_ready(pid);
+        manager.switch_next(context);
     });
 }
 
 pub fn spawn_kernel_thread(entry: fn() -> !, name: String, data: Option<ProcessData>) -> ProcessId {
+    debug!("spawn_kernel_thread: {}", name);
     x86_64::instructions::interrupts::without_interrupts(|| {
         let entry = VirtAddr::new(entry as usize as u64);
         get_process_manager().spawn_kernel_thread(entry, name, data)
@@ -66,6 +85,7 @@ pub fn print_process_list() {
 pub fn env(key: &str) -> Option<String> {
     x86_64::instructions::interrupts::without_interrupts(|| {
         // FIXME: get current process's environment variable
+        get_process_manager().current().read().env(key)
     })
 }
 

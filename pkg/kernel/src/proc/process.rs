@@ -2,6 +2,8 @@ use super::*;
 use crate::memory::*;
 use alloc::sync::Weak;
 use alloc::vec::Vec;
+use alloc::sync::Arc;
+use crate::proc::vm::ProcessVm;
 use spin::*;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::page::PageRange;
@@ -118,7 +120,7 @@ impl ProcessInner {
     }
 
     pub fn clone_page_table(&self) -> PageTableContext {
-        self.proc_vm.as_ref().unwrap()
+        self.vm().page_table.clone_level_4()
     }
 
     pub fn is_ready(&self) -> bool {
@@ -141,14 +143,25 @@ impl ProcessInner {
     /// mark the process as ready
     pub(super) fn save(&mut self, context: &ProcessContext) {
         // FIXME: save the process's context
+        self.context.save(context);
+        self.status = ProgramStatus::Ready;
     }
 
     /// Restore the process's context
     /// mark the process as running
     pub(super) fn restore(&mut self, context: &mut ProcessContext) {
         // FIXME: restore the process's context
-
+        self.context.restore(context);
         // FIXME: restore the process's page table
+        // if let Some(ref proc_vm) = self.proc_vm {
+        //     proc_vm.page_table.load();
+        // }
+        self.vm().page_table.load();
+        self.status = ProgramStatus::Running;
+    }
+
+    pub fn init_stack_frame(&mut self, entry: VirtAddr, stack_top: VirtAddr) {
+        self.context.init_stack_frame(entry, stack_top)
     }
 
     pub fn parent(&self) -> Option<Arc<Process>> {
@@ -157,10 +170,12 @@ impl ProcessInner {
 
     pub fn kill(&mut self, ret: isize) {
         // FIXME: set exit code
-
+        self.exit_code = Some(ret);
         // FIXME: set status to dead
-
+        self.status = ProgramStatus::Dead;
         // FIXME: take and drop unused resources
+        self.proc_vm.take();
+        self.proc_data.take();
     }
 }
 

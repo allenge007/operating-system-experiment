@@ -5,6 +5,7 @@ use x86_64::{
 
 
 use super::{FrameAllocatorRef, MapperRef};
+use crate::proc::{processor, KERNEL_PID};
 
 // 0xffff_ff00_0000_0000 is the kernel's address space
 pub const STACK_MAX: u64 = 0x4000_0000_0000;
@@ -26,7 +27,7 @@ const STACK_INIT_TOP_PAGE: Page<Size4KiB> = Page::containing_address(VirtAddr::n
 // kernel stack
 pub const KSTACK_MAX: u64 = 0xffff_ff02_0000_0000;
 pub const KSTACK_DEF_BOT: u64 = KSTACK_MAX - STACK_MAX_SIZE;
-pub const KSTACK_DEF_PAGE: u64 = /* FIXME: decide on the boot config */;
+pub const KSTACK_DEF_PAGE: u64 = /* FIXME: decide on the boot config */8;
 pub const KSTACK_DEF_SIZE: u64 = KSTACK_DEF_PAGE * crate::memory::PAGE_SIZE;
 
 pub const KSTACK_INIT_BOT: u64 = KSTACK_MAX - KSTACK_DEF_SIZE;
@@ -105,6 +106,27 @@ impl Stack {
         debug_assert!(self.is_on_stack(addr), "Address is not on stack.");
 
         // FIXME: grow stack for page fault
+        let new_start_page = Page::containing_address(addr);
+        let page_count = self.range.start - new_start_page;
+
+        trace!(
+            "Fill missing pages...[{:#x} -> {:#x}) ({} pages)",
+            new_start_page.start_address().as_u64(),
+            self.range.start.start_address().as_u64(),
+            page_count
+        );
+
+        let user_access = processor::get_pid() != KERNEL_PID;
+
+        elf::map_range(
+            new_start_page.start_address().as_u64(),
+            page_count,
+            mapper,
+            alloc,
+        )?;
+
+        self.range = Page::range(new_start_page, self.range.end);
+        self.usage = self.range.count() as u64;
 
         Ok(())
     }

@@ -6,8 +6,8 @@ pub mod gdt;
 
 pub use address::*;
 pub use frames::*;
-
-use crate::humanized_size;
+pub use crate::utils::humanized_size;
+// use crate::humanized_size;
 
 pub fn init(boot_info: &'static boot::BootInfo) {
     let memory_map = &boot_info.memory_map;

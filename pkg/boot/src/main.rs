@@ -108,7 +108,7 @@ fn efi_main() -> Status {
         memory_map: mmap.entries().copied().collect(),
         physical_memory_offset: config.physical_memory_offset,
         system_table,
-        log_level: "info",
+        log_level: "trace",
     };
 
     // align stack to 8 bytes

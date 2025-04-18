@@ -1,4 +1,7 @@
+use uefi::proto::debug;
+
 pub fn test() -> ! {
+    debug!("Test thread started");
     let mut count = 0;
     let id;
     if let Some(id_env) = crate::proc::env("id") {
@@ -35,6 +38,7 @@ fn huge_stack() {
 }
 
 pub fn stack_test() -> ! {
+    debug!("stack_test");
     huge_stack();
     crate::proc::process_exit(0)
 }

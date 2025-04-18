@@ -7,8 +7,9 @@ use x86_64::VirtAddr;
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 pub const PAGE_FAULT_IST_INDEX: u16 = 1;
+pub const CLOCK: u16 = 2;
 
-pub const IST_SIZES: [usize; 3] = [0x1000, 0x1000, 0x1000];
+pub const IST_SIZES: [usize; 4] = [0x1000, 0x1000, 0x1000, 0x1000];
 
 lazy_static! {
     static ref TSS: TaskStateSegment = {
@@ -58,6 +59,20 @@ lazy_static! {
             );
             stack_end
         };
+
+        tss.interrupt_stack_table[(CLOCK) as usize] = {
+            const STACK_SIZE: usize = IST_SIZES[3];
+            static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
+            let stack_start = VirtAddr::from_ptr(addr_of_mut!(STACK));
+            let stack_end = stack_start + STACK_SIZE as u64;
+            info!(
+                "Clock Stack       : 0x{:016x}-0x{:016x}",
+                stack_start.as_u64(),
+                stack_end.as_u64()
+            );
+            stack_end
+        };
+
         tss
     };
 }

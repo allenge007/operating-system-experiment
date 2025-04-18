@@ -27,9 +27,10 @@ pub use drivers::*;
 
 pub mod memory;
 pub mod interrupt;
-pub mod humanized_size;
+// pub mod humanized_size;
+pub mod proc;
 
-pub use humanized_size::humanized_size;
+// pub use humanized_size::humanized_size;
 pub use alloc::format;
 
 use boot::BootInfo;
@@ -48,6 +49,7 @@ pub fn init(boot_info: &'static BootInfo) {
     memory::allocator::init(); // init kernel heap allocator
     interrupt::init(); // init interrupts
     memory::init(boot_info); // init memory manager
+    crate::proc::init(); // init process manager
     x86_64::instructions::interrupts::enable();
     info!("Interrupts Enabled.");
 
