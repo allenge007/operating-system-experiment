@@ -69,11 +69,12 @@ impl ProcessManager {
 
     pub fn save_current(&self, context: &ProcessContext) {
         // FIXME: update current process's tick count
-        let current_pid = processor::get_pid();
-        if let Some(proc) = self.get_proc(&current_pid) {
-            proc.write().tick();
-            // FIXME: save current process's context
-            proc.write().save(context);
+        self.current().write().tick();
+        self.current().write().save(context);
+        if self.current().read().status() != ProgramStatus::Dead {
+            self.push_ready(processor::get_pid());
+        } else {
+            debug!("Process #{} is dead.", processor::get_pid());
         }
     }
 
@@ -85,8 +86,7 @@ impl ProcessManager {
         let mut pid = processor::get_pid();
 
         while let Some(next) = self.ready_queue.lock().pop_front() {
-            let map = self.processes.read();
-            let proc = map.get(&next).expect("Process not found");
+            let proc = self.get_proc(&next).unwrap();
 
             if !proc.read().is_ready() {
                 debug!("Process #{} is {:?}", next, proc.read().status());
@@ -120,7 +120,6 @@ impl ProcessManager {
         let proc_vm = Some(ProcessVm::new(page_table));
         let proc = Process::new(name, Some(Arc::downgrade(&kproc)), proc_vm, proc_data);
         
-        debug!("Spawn kernel thread: {:#?}", proc);
         // alloc stack for the new process base on pid
         let stack_top = proc.alloc_init_stack();
         
@@ -134,7 +133,6 @@ impl ProcessManager {
         let pid = proc.pid();
         self.add_proc(pid, proc);
         self.push_ready(pid);
-        debug!("Process #{} created.", pid);
         // debug!("Ready Queue: {:?}", self.ready_queue.lock());
         // FIXME: return new process pid
         pid

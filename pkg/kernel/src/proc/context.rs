@@ -36,13 +36,11 @@ impl ProcessContext {
     #[inline]
     pub fn save(&mut self, context: &ProcessContext) {
         self.value = context.as_ref().as_ptr().read();
-        // self.value = context.value;
     }
 
     #[inline]
     pub fn restore(&self, context: &mut ProcessContext) {
         context.as_mut().as_mut_ptr().write(self.value);
-        // context.value = self.value;
     }
 
     pub fn init_stack_frame(&mut self, entry: VirtAddr, stack_top: VirtAddr) {

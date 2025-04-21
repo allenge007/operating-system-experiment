@@ -57,13 +57,13 @@ fn wait(pid: ProcessId) {
         let proc = get_process_manager().get_proc(&pid);
         if proc.is_none() {
             break ;
-        }
+        };
         let exitcode = proc.unwrap().read().exit_code();
         if exitcode.is_none() {
             x86_64::instructions::hlt();
         } else {
             break ;
-        }
+        };
     }
 }
 

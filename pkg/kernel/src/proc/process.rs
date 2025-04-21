@@ -144,7 +144,9 @@ impl ProcessInner {
     pub(super) fn save(&mut self, context: &ProcessContext) {
         // FIXME: save the process's context
         self.context.save(context);
-        self.status = ProgramStatus::Ready;
+        if self.status == ProgramStatus::Running {
+            self.status = ProgramStatus::Ready;
+        }
     }
 
     /// Restore the process's context
@@ -176,6 +178,7 @@ impl ProcessInner {
         // FIXME: take and drop unused resources
         self.proc_vm.take();
         self.proc_data.take();
+        print!("Process {}# killed.", self.name);
     }
 }
 

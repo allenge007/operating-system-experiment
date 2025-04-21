@@ -1,7 +1,6 @@
 use uefi::proto::debug;
 
 pub fn test() -> ! {
-    debug!("Test thread started");
     let mut count = 0;
     let id;
     if let Some(id_env) = crate::proc::env("id") {
@@ -14,7 +13,7 @@ pub fn test() -> ! {
         count += 1;
         if count == 1000 {
             count = 0;
-            print!("\r{:-6} => Tick!", id);
+            print!("\n{:-6} => Tick!", id);
         }
         unsafe {
             x86_64::instructions::hlt();

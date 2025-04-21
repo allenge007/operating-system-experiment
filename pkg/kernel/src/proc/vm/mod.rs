@@ -46,7 +46,7 @@ impl ProcessVm {
         map_range(stack_top_addr, STACK_DEF_PAGE, &mut self.page_table.mapper(), frame_allocator).unwrap();
 
         let stack_top_vaddr = VirtAddr::new(stack_top_addr);
-        self.stack = Stack::new(Page::containing_address(stack_top_vaddr), STACK_DEF_PAGE,);
+        self.stack = Stack::new(Page::containing_address(stack_top_vaddr), STACK_DEF_PAGE);
 
         stack_top_vaddr
     }

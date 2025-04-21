@@ -48,7 +48,6 @@ pub fn init() {
         None,
     );
     
-    kproc.write().resume();
     manager::init(kproc);
 
     info!("Process Manager Initialized.");
@@ -62,8 +61,6 @@ pub fn switch(context: &mut ProcessContext) {
         //      - restore next process's context
         let manager = get_process_manager();
         manager.save_current(context);
-        let pid = processor::get_pid();
-        manager.push_ready(pid);
         manager.switch_next(context);
     });
 }
