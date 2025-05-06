@@ -73,6 +73,7 @@ pub fn env(key: &str) -> Option<String> {
 pub fn process_exit(ret: isize, context: &mut ProcessContext) {
     x86_64::instructions::interrupts::without_interrupts(|| {
         let manager = get_process_manager();
+        //DONE: implement process exit
         manager.kill_self(ret);
         manager.switch_next(context);
     })
