@@ -42,16 +42,14 @@ pub fn print_prompt() {
     let path_binding = "~".bright_cyan();
     let path_part = path_binding.bold();
     
-    print!("{}", "╭─[".bright_cyan());
+    print!("{}", "╭─".white());
     print!("{}", user_part);
     print!("{}", "@".bright_cyan());
     print!("{}", host_part);
-    print!("{}", "]─[".bright_cyan());
-    print!("{}", path_part);
-    println!("{}", "]".bright_cyan());
+    println!("{}", path_part);
 
     // 第二行：提示符本身
-    print!("{}", "╰─➜ ".bright_cyan().bold());
+    print!("{}{}", "╰─".white(), "❯ ".bright_purple().bold());
 }
 
 /// 以下为帮助信息的格式，供 show_help_text 使用

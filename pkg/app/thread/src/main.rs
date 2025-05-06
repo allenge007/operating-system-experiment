@@ -5,7 +5,7 @@ use lib::*;
 
 extern crate lib;
 
-const MOD: u64 = 1000000007;
+const MOD: u64 = 1_000_000_007;
 
 fn factorial(n: u64) -> u64 {
     if n == 0 {
@@ -23,8 +23,8 @@ fn main() -> isize {
     // prase input as u64
     let n = input.parse::<u64>().unwrap();
 
-    if n > 1000000 {
-        println!("n must be less than 1000000");
+    if n > 1_000_000 {
+        println!("n must be less than 1_000_000");
         return 1;
     }
 

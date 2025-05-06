@@ -74,7 +74,7 @@ impl Stdin {
                     string.clear();
                     break;
                 }
-                0x08 | 0x7F if !string.is_empty() => {
+                0x08 | 0x7F => {
                     if !string.is_empty() {
                         stdout().write("\x08 \x08");
                         string.pop();
