@@ -15,7 +15,7 @@ pub unsafe fn register_idt(idt: &mut InterruptDescriptorTable) {
 /// 串口中断处理函数
 pub extern "x86-interrupt" fn serial_handler(_st: InterruptStackFrame) {
     receive();
-    super::ack();
+    super::ack(super::consts::Irq::Serial0 as u8);
 }
 
 /// 从串口 16550 读取数据并放入输入缓冲区

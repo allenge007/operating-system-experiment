@@ -3,6 +3,7 @@ use uefi::boot::*;
 use uefi::proto::media::file::*;
 use uefi::proto::media::fs::SimpleFileSystem;
 use xmas_elf::ElfFile;
+use crate::{AppList, AppListRef, ArrayVec, ArrayString, App};
 
 /// Open root directory
 pub fn open_root() -> Directory {
@@ -65,4 +66,64 @@ pub fn free_elf(elf: ElfFile) {
     unsafe {
         uefi::boot::free_pages(mem_start, pages).expect("Failed to free pages");
     }
+}
+
+/// Load apps into memory, when no fs implemented in kernel
+///
+/// List all file under "APP" and load them.
+pub fn load_apps() -> AppList {
+    let mut root = open_root();
+    let mut buf = [0; 8];
+    let cstr_path = uefi::CStr16::from_str_with_buf("\\APP\\", &mut buf).unwrap();
+
+    let mut handle = { 
+        /* DONE: get handle for \APP\ dir */ 
+        root.open(cstr_path, FileMode::Read, FileAttribute::empty())
+            .expect("Failed to open file")
+            .into_directory()
+            .expect("Failed to open APP directory")
+    };
+
+    let mut apps = ArrayVec::new();
+    let mut entry_buf = [0u8; 0x100];
+
+    loop {
+        let info = handle
+            .read_entry(&mut entry_buf)
+            .expect("Failed to read entry");
+
+        match info {
+            Some(entry) => {
+                let file = { 
+                    /* DONE: get handle for app binary file */ 
+                    handle.open(entry.file_name(), FileMode::Read, FileAttribute::empty())
+                        .expect("Failed to open file")
+                };
+
+                if file.is_directory().unwrap_or(true) {
+                    continue;
+                }
+
+                let elf = {
+                    // DONE: load file with `load_file` function
+                    // DONE: convert file to `ElfFile`
+                    let mut reg_file = match file.into_type().expect("Failed to into_type") {
+                        FileType::Regular(f) => f,
+                        _ => panic!("Invalid file type"),
+                    };
+                    ElfFile::new(load_file(&mut reg_file)).expect("Failed to parse ELF file")
+                };
+
+                let mut name = ArrayString::<16>::new();
+                entry.file_name().as_str_in_buf(&mut name).unwrap();
+
+                apps.push(App { name, elf });
+            }
+            None => break,
+        }
+    }
+
+    info!("Loaded {} apps", apps.len());
+
+    apps
 }

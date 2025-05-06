@@ -88,10 +88,6 @@ impl Process {
 
         inner.kill(ret);
     }
-
-    pub fn alloc_init_stack(&self) -> VirtAddr {
-        self.write().vm_mut().init_proc_stack(self.pid)
-    }
 }
 
 impl ProcessInner {
@@ -113,6 +109,10 @@ impl ProcessInner {
 
     pub fn resume(&mut self) {
         self.status = ProgramStatus::Running;
+    }
+
+    pub fn block(&mut self) {
+        self.status = ProgramStatus::Blocked;
     }
 
     pub fn exit_code(&self) -> Option<isize> {
@@ -139,14 +139,15 @@ impl ProcessInner {
         self.vm_mut().handle_page_fault(addr)
     }
 
+    pub fn load_elf(&mut self, elf: &ElfFile) {
+        self.vm_mut().load_elf(elf);
+    }
     /// Save the process's context
     /// mark the process as ready
     pub(super) fn save(&mut self, context: &ProcessContext) {
         // FIXME: save the process's context
         self.context.save(context);
-        if self.status == ProgramStatus::Running {
-            self.status = ProgramStatus::Ready;
-        }
+        self.status = ProgramStatus::Ready;
     }
 
     /// Restore the process's context

@@ -17,6 +17,7 @@ pub struct Config<'a> {
     pub cmdline: &'a str,
     /// Load apps into memory, when no fs implemented in kernel
     pub load_apps: bool,
+    pub log_level: &'a str,
 }
 
 const DEFAULT_CONFIG: Config = Config {
@@ -26,7 +27,8 @@ const DEFAULT_CONFIG: Config = Config {
     physical_memory_offset: 0xFFFF_8000_0000_0000,
     kernel_path: "\\KERNEL.ELF",
     cmdline: "",
-    load_apps: false,
+    load_apps: true,
+    log_level: "info",
 };
 
 impl<'a> Config<'a> {

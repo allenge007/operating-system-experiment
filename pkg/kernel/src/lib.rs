@@ -8,6 +8,7 @@
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::result_unit_err)]
 
+#[macro_use]
 extern crate alloc;
 #[macro_use]
 extern crate log;
@@ -27,10 +28,8 @@ pub use drivers::*;
 
 pub mod memory;
 pub mod interrupt;
-// pub mod humanized_size;
 pub mod proc;
 
-// pub use humanized_size::humanized_size;
 pub use alloc::format;
 
 use boot::BootInfo;
@@ -47,13 +46,50 @@ pub fn init(boot_info: &'static BootInfo) {
     memory::address::init(boot_info);
     memory::gdt::init(); // init gdt
     memory::allocator::init(); // init kernel heap allocator
-    proc::init(); // init process manager
     interrupt::init(); // init interrupts
     memory::init(boot_info); // init memory manager
+    memory::user::init(); // init user memory manager
+    proc::init(boot_info); // init process manager
+    
     x86_64::instructions::interrupts::enable();
     info!("Interrupts Enabled.");
 
+    info!("Growing stack test...");
+    grow_stack();
+    info!("Stack test done.");
+
     info!("YatSenOS initialized.");
+}
+
+#[unsafe(no_mangle)]
+#[inline(never)]
+pub fn grow_stack() {
+    const STACK_SIZE: usize = 1024 * 4;
+    const STEP: usize = 64;
+
+    let mut array = [0u64; STACK_SIZE];
+    let ptr = array.as_ptr();
+    info!("Stack: {:?}", ptr);
+
+    // test write
+    for i in (0..STACK_SIZE).step_by(STEP) {
+        array[i] = i as u64;
+    }
+
+    // test read
+    for i in (0..STACK_SIZE).step_by(STEP) {
+        assert_eq!(array[i], i as u64);
+    }
+}
+
+pub fn wait(init: proc::ProcessId) {
+    loop {
+        if proc::wait_no_block(init).is_none() {
+            x86_64::instructions::hlt();
+        } else {
+            break;
+        }
+    }
 }
 
 pub fn shutdown() -> ! {

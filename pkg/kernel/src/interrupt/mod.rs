@@ -3,11 +3,13 @@ mod consts;
 pub mod clock;
 mod serial;
 mod exceptions;
+mod syscall;
 
 use apic::*;
 use x86_64::structures::idt::InterruptDescriptorTable;
 use crate::memory::physical_to_virtual;
 use crate::interrupt::consts::*;
+pub use syscall::SyscallArgs;
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
@@ -16,6 +18,7 @@ lazy_static! {
             exceptions::register_idt(&mut idt);
             clock::register_idt(&mut idt);
             serial::register_idt(&mut idt);
+            syscall::register_idt(&mut idt);
         }
         idt
     };
@@ -43,7 +46,7 @@ pub fn enable_irq(irq: u8, cpuid: u8) {
 }
 
 #[inline(always)]
-pub fn ack() {
+pub fn ack(_irq: u8) {
     let mut lapic = unsafe { XApic::new(physical_to_virtual(LAPIC_ADDR)) };
     lapic.eoi();
 }

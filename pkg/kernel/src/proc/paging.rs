@@ -3,9 +3,9 @@ use core::ptr::copy_nonoverlapping;
 
 use alloc::sync::Arc;
 use x86_64::{
+    VirtAddr,
     registers::control::{Cr3, Cr3Flags},
     structures::paging::*,
-    VirtAddr,
 };
 
 pub struct Cr3RegValue {
@@ -31,7 +31,6 @@ impl PageTableContext {
         }
     }
 
-    /// Create a new page table object based on current page table.
     pub fn clone_level_4(&self) -> Self {
         // 1. alloc new page table
         let mut frame_alloc = crate::memory::get_frame_alloc_for_sure();
@@ -48,18 +47,27 @@ impl PageTableContext {
             );
         }
 
-        // 3. create page table object
+        // 3. create page table
         Self {
             reg: Arc::new(Cr3RegValue::new(page_table_addr, Cr3Flags::empty())),
         }
     }
 
-    /// Load the page table to Cr3 register.
+    pub fn using_count(&self) -> usize {
+        Arc::strong_count(&self.reg)
+    }
+
     pub fn load(&self) {
         unsafe { Cr3::write(self.reg.addr, self.reg.flags) }
     }
 
-    /// Get the page table object by Cr3 register value.
+    pub fn fork(&self) -> Self {
+        // forked process shares the page table
+        Self {
+            reg: self.reg.clone(),
+        }
+    }
+
     pub fn mapper(&self) -> OffsetPageTable<'static> {
         unsafe {
             OffsetPageTable::new(
@@ -72,9 +80,16 @@ impl PageTableContext {
     }
 }
 
+impl Default for PageTableContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl core::fmt::Debug for PageTableContext {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("PageTable")
+            .field("refs", &self.using_count())
             .field("addr", &self.reg.addr)
             .field("flags", &self.reg.flags)
             .finish()

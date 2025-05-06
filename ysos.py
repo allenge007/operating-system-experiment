@@ -165,7 +165,10 @@ def build():
                     break
 
         info('Building', f'app {app}...')
-        execute_command([cargo_exe, 'build', profile], app_path)
+        if profile != '':
+            execute_command([cargo_exe, 'build', profile], app_path)
+        else:
+            execute_command([cargo_exe, 'build'], app_path)
         compile_output = os.path.join(
             os.getcwd(), 'target', 'x86_64-unknown-ysos', profile_dir, app_name)
         copy_to_esp(compile_output, os.path.join('APP', app))
