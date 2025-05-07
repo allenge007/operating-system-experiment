@@ -1,9 +1,13 @@
 use crate::*;
 use alloc::string::{String, ToString};
 use alloc::vec;
+use core::fmt::{self, Write};
+use spin::{Mutex, Lazy};
 
 pub struct Stdin;
-pub struct Stdout;
+pub struct Stdout {
+    buffer: String,
+}
 pub struct Stderr;
 
 impl Stdin {
@@ -67,7 +71,7 @@ impl Stdin {
 
             match ch {
                 0x0d => {
-                    stdout().write("\n");
+                    stdout().write_str("\n");
                     break;
                 }
                 0x03 => {
@@ -76,7 +80,7 @@ impl Stdin {
                 }
                 0x08 | 0x7F => {
                     if !string.is_empty() {
-                        stdout().write("\x08 \x08");
+                        stdout().write_str("\x08 \x08");
                         string.pop();
                     }
                 }
@@ -92,28 +96,51 @@ impl Stdin {
                 }
             }
         }
+        println!();
         string
     }
+
     pub fn read_key(&self) -> Option<char> {
-        let byte = self.pop_key();
-        if Self::is_utf8(byte) {
-            // 自动调用 to_utf8 解析后续字节
-            let cp = self.to_utf8(byte);
+        let ch = self.pop_key();
+        if Self::is_utf8(ch) {
+            let cp = self.to_utf8(ch);
             char::from_u32(cp)
         } else {
-            Some(byte as char)
+            Some(ch as char)
         }
     }
 }
 
 impl Stdout {
     fn new() -> Self {
-        Self
+        Self {
+            buffer: String::new(),
+        }
     }
 
-    pub fn write(&self, s: &str) {
-        sys_write(1, s.as_bytes());
+    pub fn flush(&mut self) {
+        if !self.buffer.is_empty() {
+            sys_write(1, self.buffer.as_bytes());
+            self.buffer.clear();
+        }
     }
+}
+
+impl Write for Stdout {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.buffer.push_str(s);
+        if self.buffer.len() > 1024 {
+            self.flush();
+        }
+        Ok(())
+    }
+}
+
+// 使用 spin::Lazy 延迟初始化全局 Stdout 实例，避免直接在静态变量中调用非 const 函数
+static GLOBAL_STDOUT: Lazy<Mutex<Stdout>> = Lazy::new(|| Mutex::new(Stdout::new()));
+
+pub fn stdout() -> spin::MutexGuard<'static, Stdout> {
+    GLOBAL_STDOUT.lock()
 }
 
 impl Stderr {
@@ -128,10 +155,6 @@ impl Stderr {
 
 pub fn stdin() -> Stdin {
     Stdin::new()
-}
-
-pub fn stdout() -> Stdout {
-    Stdout::new()
 }
 
 pub fn stderr() -> Stderr {

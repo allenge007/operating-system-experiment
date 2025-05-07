@@ -30,7 +30,7 @@ pub fn show_welcome_text() {
 ///
 /// 提示符分为两行：
 /// 第一行显示 "[ysos@machine] [~]"，
-/// 第二行显示 "╰─➜ " 作为命令输入提示符。
+/// 第二行显示 "╰─> " 作为命令输入提示符。
 pub fn print_prompt() {
     // 第一行：构建带颜色的用户、主机和路径信息，主要使用天蓝色
     let user_binding = "ysos".bright_cyan();
@@ -49,6 +49,11 @@ pub fn print_prompt() {
     println!("{}", path_part);
 
     // 第二行：提示符本身
+    print!("{}{}", "╰─".white(), "❯ ".bright_purple().bold());
+}
+
+pub fn print_prompt_sec() {
+    // 重新绘制第 2 行 prompt
     print!("{}{}", "╰─".white(), "❯ ".bright_purple().bold());
 }
 

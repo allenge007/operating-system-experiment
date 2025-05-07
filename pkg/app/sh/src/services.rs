@@ -21,5 +21,5 @@ pub fn exec(name: &str) {
 }
 
 pub fn kill(pid: u16) {
-    sys_exit(pid as isize);
+    sys_kill(pid);
 }

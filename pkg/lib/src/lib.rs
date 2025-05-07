@@ -45,7 +45,8 @@ macro_rules! errln {
 
 #[doc(hidden)]
 pub fn _print(args: Arguments) {
-    stdout().write(format!("{}", args).as_str());
+    let _ = stdout().write_fmt(args);
+    stdout().flush();
 }
 
 #[doc(hidden)]

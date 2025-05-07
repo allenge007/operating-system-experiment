@@ -432,6 +432,7 @@ dependencies = [
 name = "yslib"
 version = "0.4.0"
 dependencies = [
+ "spin 0.10.0",
  "ysos_syscall",
 ]
 
