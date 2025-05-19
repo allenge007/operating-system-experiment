@@ -10,7 +10,6 @@ use super::consts;
 use service::*;
 
 // FIXME: write syscall service handler in `service.rs`
-use service::*;
 
 pub unsafe fn register_idt(idt: &mut InterruptDescriptorTable) {
     // FIXME: register syscall handler to IDT
@@ -70,6 +69,9 @@ pub fn dispatcher(context: &mut ProcessContext) {
         Syscall::Stat => list_process(),
         // None
         Syscall::ListApp => list_app(),
+        // None -> pid: u16
+        Syscall::VFork => sys_vfork(context),
+        Syscall::Sem => sys_sem(&args, context),
 
         // layout: arg0 as *const Layout -> ptr: *mut u8
         Syscall::Allocate => context.set_rax(sys_allocate(&args)),

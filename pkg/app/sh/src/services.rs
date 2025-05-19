@@ -14,7 +14,7 @@ pub fn exec(name: &str) {
     // let time = sys_time() - start;
 
     println!(
-        "[+] process exited with code {}",
+        "process exited with code {}",
         ret,
         // time.num_seconds()
     );

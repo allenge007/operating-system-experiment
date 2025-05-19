@@ -1,7 +1,6 @@
 use core::alloc::Layout;
 
 use crate::proc::*;
-use crate::utils::*;
 use crate::memory::*;
 
 use super::SyscallArgs;
@@ -134,5 +133,19 @@ pub fn sys_deallocate(args: &SyscallArgs) {
             core::ptr::NonNull::new_unchecked(args.arg0 as *mut u8),
             *layout,
         );
+    }
+}
+
+pub fn sys_vfork(context: &mut ProcessContext) {
+    vfork(context);
+}
+
+pub fn sys_sem(args: &SyscallArgs, context: &mut ProcessContext) {
+    match args.arg0 {
+        0 => context.set_rax(sem_new(args.arg1 as u32, args.arg2) as usize),
+        1 => sem_wait(args.arg1 as u32, context),
+        2 => sem_signal(args.arg1 as u32, context),
+        3 => context.set_rax(remove_sem(args.arg1 as u32)),
+        _ => context.set_rax(usize::MAX),
     }
 }

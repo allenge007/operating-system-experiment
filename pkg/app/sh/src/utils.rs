@@ -1,4 +1,4 @@
-use owo_colors::{OwoColorize, AnsiColors};
+use owo_colors::{OwoColorize};
 use alloc::string::String;
 use lib::*;
 
@@ -82,7 +82,7 @@ fn format_cmds(cate: &str, actions: &[Action]) -> String {
     result
 }
 
-const VERSION_STR: &str = concat!("oh_my_zsh v", env!("CARGO_PKG_VERSION"));
+// const VERSION_STR: &str = concat!("oh_my_zsh v", env!("CARGO_PKG_VERSION"));
 
 struct Action(&'static str, Option<&'static str>, &'static str);
 
@@ -103,18 +103,9 @@ const SHORTCUTS: [Action; 2] = [
     Action("Ctrl + C", None, "cancel current command"),
 ];
 
-/// 显示帮助信息，带有版本及作者 (作者: allenge)
+/// 显示帮助信息
 pub fn show_help_text() {
-    println!("\n{} by {}\n", VERSION_STR.bold(), "allenge".bold());
-    println!("{}", "Available Commands:".bright_cyan().bold());
-    println!("  {} - Show process list", "ps".bright_magenta());
-    println!("  {} - List directory", "ls".bright_magenta());
-    println!("  {} <file> - Execute file", "exec".bright_magenta());
-    println!("  {} <pid> - Kill process", "kill".bright_magenta());
-    println!("  {} - Clear screen", "clear".bright_magenta());
-    println!("  {} - Exit shell", "exit".bright_magenta());
-    println!();
-    println!("{}", "Shortcuts:".bright_cyan().bold());
     println!("  {} - Exit shell", "Ctrl+D".bright_magenta());
-    println!("  {} - Cancel command", "Ctrl+C".bright_magenta());
+    println!("{}", format_cmds("Available Commands:", &ACTIONS_MAP));
+    println!("{}", format_cmds("Shortcuts:", &SHORTCUTS));
 }

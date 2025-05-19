@@ -55,6 +55,10 @@ impl ProcessContext {
 
         trace!("Init stack frame: {:#?}", &self.stack_frame);
     }
+
+    pub fn set_stack_offset(&mut self, offset: u64) {
+        self.value.stack_frame.stack_pointer += offset;
+    }
 }
 
 impl Default for ProcessContextValue {

@@ -5,7 +5,6 @@ use core::fmt::{Debug, Error, Formatter};
 use core::ptr::{read_volatile, write_volatile};
 use x86::cpuid::CpuId;
 use crate::interrupt::consts::{Interrupts, Irq};
-use crate::memory::address::physical_to_virtual;
 
 /// 默认 xAPIC 物理地址
 pub const LAPIC_ADDR: u64 = 0xFEE00000;
@@ -70,14 +69,18 @@ impl XApic {
 
     /// 使用枚举读取寄存器
     unsafe fn read(&self, reg: LapicRegister) -> u32 {
-        read_volatile((self.addr + u32::from(reg) as u64) as *const u32)
+        unsafe{
+            read_volatile((self.addr + u32::from(reg) as u64) as *const u32)
+        }
     }
 
     /// 使用枚举写入寄存器
     unsafe fn write(&mut self, reg: LapicRegister, value: u32) {
-        write_volatile((self.addr + u32::from(reg) as u64) as *mut u32, value);
-        // 同步：通过读取 ESR 寄存器来确保写入生效
-        self.read(LapicRegister::ESR);
+        unsafe {
+            write_volatile((self.addr + u32::from(reg) as u64) as *mut u32, value);
+            // 同步：通过读取 ESR 寄存器来确保写入生效
+            self.read(LapicRegister::ESR);
+        }
     }
 }
 

@@ -6,11 +6,13 @@ mod pid;
 mod process;
 mod processor;
 mod vm;
+mod sync;
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use manager::*;
 use process::*;
+use sync::*;
 
 pub use context::ProcessContext;
 pub use data::ProcessData;
@@ -85,7 +87,10 @@ pub fn wait_pid(pid: ProcessId, context: &mut ProcessContext) {
         if let Some(ret) = manager.get_exit_code(pid) {
             context.set_rax(ret as usize);
         } else {
-            context.set_rax(0xbee);
+            manager.wait_pid(pid);
+            manager.save_current(context);
+            manager.current().write().block();
+            manager.switch_next(context);
         }
     })
 }
@@ -177,4 +182,63 @@ pub fn list_app() {
 
         println!(">>> App list: {}", apps);
     });
+}
+
+pub fn vfork(context: &mut ProcessContext) {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let manager = get_process_manager();
+        let pid = manager.save_current(context);
+        manager.vfork();
+        manager.push_ready(pid);
+        manager.switch_next(context);
+    })
+}
+
+pub fn sem_new(key: u32, value: usize) -> usize {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        if get_process_manager().current().write().sem_new(key, value) {
+            return 0;
+        }
+        1
+    })
+}
+
+pub fn remove_sem(key: u32) -> usize {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        if get_process_manager().current().write().sem_remove(key) {
+            return 0;
+        }
+        1
+    })
+}
+
+pub fn sem_wait(key: u32, context: &mut ProcessContext) {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let manager = get_process_manager();
+        let pid = manager.current().pid();
+        let result = manager.current().write().sem_wait(key, pid);
+        match result {
+            SemaphoreResult::Ok => context.set_rax(0),
+            SemaphoreResult::Block(pid) => {
+                manager.save_current(context);
+                manager.block(pid);
+                manager.switch_next(context);
+            },
+            SemaphoreResult::NotExist => context.set_rax(1),
+            _ => unreachable!(),
+        }
+    })
+}
+
+pub fn sem_signal(key: u32, context: &mut ProcessContext) {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let manager = get_process_manager();
+        let result = manager.current().write().sem_signal(key);
+        match result {
+            SemaphoreResult::Ok => context.set_rax(0),
+            SemaphoreResult::WakeUp(pid) => manager.wake_up(pid, None),
+            SemaphoreResult::NotExist => context.set_rax(1),
+            _ => unreachable!(),
+        }
+    })
 }

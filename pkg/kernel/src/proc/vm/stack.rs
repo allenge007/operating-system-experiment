@@ -1,3 +1,5 @@
+use core::ptr::copy_nonoverlapping;
+
 use x86_64::{
     VirtAddr,
     structures::paging::{Page, mapper::MapToError, page::*},
@@ -83,6 +85,39 @@ impl Stack {
         let offset = cur_stack_base - old_stack_base;
         debug_assert!(offset % STACK_MAX_SIZE != 0, "Invalid stack offset.");
         offset
+    }
+
+    pub fn vfork(&self, mapper: MapperRef, alloc: FrameAllocatorRef, stack_offset: u64) -> Self {
+        let mut new_stack_base = self.range.start.start_address().as_u64() - stack_offset * STACK_MAX_SIZE;
+        while elf::map_pages(
+            new_stack_base,
+            self.usage,
+            mapper,
+            alloc,
+            true,
+        )
+        .is_err() {
+            new_stack_base -= STACK_MAX_SIZE;
+        }
+        debug!("Map new stack: {:#x}", new_stack_base);
+        unsafe {
+            copy_nonoverlapping(
+                self.range.start.start_address().as_u64() as *mut u64,
+                new_stack_base as *mut u64,
+                (self.usage * Size4KiB::SIZE / 8) as usize,
+            );
+            debug!(
+                "Copy stack range {:#x} to {:#x}",
+                self.range.start.start_address().as_u64(),
+                new_stack_base
+            );
+        }
+        let new_start = Page::containing_address(VirtAddr::new(new_stack_base));
+        let new_end = new_start + self.usage;
+        Self {
+            range: Page::range(new_start, new_end),
+            usage: self.usage,
+        }
     }
 
     pub fn handle_page_fault(

@@ -71,7 +71,7 @@ impl Stdin {
 
             match ch {
                 0x0d => {
-                    stdout().write_str("\n");
+                    let _ = stdout().write_str("\n");
                     break;
                 }
                 0x03 => {
@@ -80,7 +80,7 @@ impl Stdin {
                 }
                 0x08 | 0x7F => {
                     if !string.is_empty() {
-                        stdout().write_str("\x08 \x08");
+                        let _ = stdout().write_str("\x08 \x08");
                         string.pop();
                     }
                 }

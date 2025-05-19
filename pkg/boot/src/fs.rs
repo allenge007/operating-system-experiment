@@ -3,7 +3,7 @@ use uefi::boot::*;
 use uefi::proto::media::file::*;
 use uefi::proto::media::fs::SimpleFileSystem;
 use xmas_elf::ElfFile;
-use crate::{AppList, AppListRef, ArrayVec, ArrayString, App};
+use crate::{AppList, ArrayVec, ArrayString, App};
 
 /// Open root directory
 pub fn open_root() -> Directory {

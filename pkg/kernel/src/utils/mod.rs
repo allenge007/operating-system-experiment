@@ -12,7 +12,6 @@ pub use macros::*;
 pub use regs::*;
 pub use resource::Resource;
 
-use crate::proc::*;
 use x86_64::instructions::interrupts;
 
 pub const fn get_ascii_header() -> &'static str {

@@ -1,4 +1,11 @@
-use x86_64::{VirtAddr, structures::paging::*};
+use x86_64::{
+    VirtAddr,
+    structures::paging::{
+        page::*,
+        *,
+    },
+};
+use alloc::vec::Vec;
 use xmas_elf::ElfFile;
 
 use crate::memory::*;
@@ -18,6 +25,9 @@ pub struct ProcessVm {
 
     // stack is pre-process allocated
     pub(super) stack: Stack,
+
+    pub(super) code: Vec<PageRangeInclusive>,
+    pub(super) code_usage: u64,
 }
 
 impl ProcessVm {
@@ -25,6 +35,8 @@ impl ProcessVm {
         Self {
             page_table,
             stack: Stack::empty(),
+            code: Vec::new(),
+            code_usage: 0,
         }
     }
 
@@ -45,6 +57,9 @@ impl ProcessVm {
 
     fn load_elf_code(&mut self, elf: &ElfFile, mapper: MapperRef, alloc: FrameAllocatorRef) {
         elf::load_elf(elf, *PHYSICAL_OFFSET.get().unwrap(), mapper, alloc, true).ok();
+
+        let usage: usize = self.code.iter().map(|page| page.count()).sum();
+        self.code_usage = usage as u64 * crate::memory::PAGE_SIZE
     }
 
     pub fn handle_page_fault(&mut self, addr: VirtAddr) -> bool {
@@ -52,6 +67,18 @@ impl ProcessVm {
         let alloc = &mut *get_frame_alloc_for_sure();
 
         self.stack.handle_page_fault(addr, mapper, alloc)
+    }
+
+    pub fn vfork(&self, stack_offset: u64) -> Self {
+        let page_table = self.page_table.fork();
+        let mapper = &mut page_table.mapper();
+        let alloc = &mut *get_frame_alloc_for_sure();
+        Self {
+            page_table: page_table,
+            stack: self.stack.vfork(mapper, alloc, stack_offset),
+            code: Vec::new(),
+            code_usage: 0,
+        }
     }
 }
 

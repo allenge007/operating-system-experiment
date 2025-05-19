@@ -1,13 +1,9 @@
 use super::*;
-use crate::memory::*;
 use alloc::sync::Weak;
 use alloc::vec::Vec;
 use alloc::sync::Arc;
 use crate::proc::vm::ProcessVm;
 use spin::*;
-use x86_64::structures::paging::mapper::MapToError;
-use x86_64::structures::paging::page::PageRange;
-use x86_64::structures::paging::*;
 
 #[derive(Clone)]
 pub struct Process {
@@ -86,7 +82,28 @@ impl Process {
             ret
         );
 
-        inner.kill(ret);
+        inner.kill(self.pid(), ret);
+    }
+
+    pub fn vfork(self: &Arc<Self>) -> Arc<Self> {
+        let mut inner = self.inner.write();
+        let new_inner = inner.vfork(Arc::downgrade(self));
+        let pid = ProcessId::new();
+        let child = Arc::new(Process {
+            pid,
+            inner: Arc::new(RwLock::new(new_inner)),
+        });
+        debug!(
+            "Process {}#{} vforked to {}#{}",
+            inner.name(),
+            self.pid,
+            child.inner.read().name(),
+            child.pid
+        );
+        inner.context.set_rax(child.pid.0 as usize);
+        inner.children.push(child.clone());
+        inner.pause();
+        child
     }
 }
 
@@ -95,6 +112,26 @@ impl ProcessInner {
         &self.name
     }
 
+    pub fn children(&self) -> &[Arc<Process>] {
+        &self.children
+    }
+
+    pub fn add_child(&mut self, child: Arc<Process>) {
+        self.children.push(child);
+    }
+
+    pub fn remove_child(&mut self, child: ProcessId) {
+        self.children.retain(|c| c.pid() != child);
+    }
+
+    pub fn set_parent(&mut self, parent: Weak<Process>) {
+        self.parent = Some(parent);
+    }
+
+    pub fn parent(&self) -> Option<Arc<Process>> {
+        self.parent.as_ref().and_then(|p| p.upgrade())
+    }
+    
     pub fn tick(&mut self) {
         self.ticks_passed += 1;
     }
@@ -142,6 +179,10 @@ impl ProcessInner {
     pub fn load_elf(&mut self, elf: &ElfFile) {
         self.vm_mut().load_elf(elf);
     }
+
+    pub fn set_return(&mut self, ret: usize) {
+        self.context.set_rax(ret);
+    }
     /// Save the process's context
     /// mark the process as ready
     pub(super) fn save(&mut self, context: &ProcessContext) {
@@ -167,19 +208,48 @@ impl ProcessInner {
         self.context.init_stack_frame(entry, stack_top)
     }
 
-    pub fn parent(&self) -> Option<Arc<Process>> {
-        self.parent.as_ref().and_then(|p| p.upgrade())
-    }
+    pub fn kill(&mut self, pid: ProcessId, ret: isize) {
+        let children = self.children();
 
-    pub fn kill(&mut self, ret: isize) {
-        // FIXME: set exit code
-        self.exit_code = Some(ret);
-        // FIXME: set status to dead
-        self.status = ProgramStatus::Dead;
-        // FIXME: take and drop unused resources
+        // remove self from parent, and set parent to children
+        if let Some(parent) = self.parent() {
+            if parent.read().exit_code().is_none() {
+                parent.write().remove_child(pid);
+                let weak = Arc::downgrade(&parent);
+                for child in children {
+                    child.write().set_parent(weak.clone());
+                }
+            } else {
+                // parent already exited, set parent to None
+                for child in children {
+                    child.write().set_parent(Weak::new());
+                }
+            }
+        }
+
         self.proc_vm.take();
         self.proc_data.take();
-        print!("Process {}# killed.", self.name);
+        self.exit_code = Some(ret);
+        self.status = ProgramStatus::Dead;
+    }
+    
+    pub fn vfork(&mut self, parent: Weak<Process>) -> ProcessInner{
+        let proc_vm = self.vm().vfork(self.children.len() as u64 + 1);
+        let offset = proc_vm.stack.stack_offset(&self.vm().stack);
+        let mut child_context = self.context;
+        child_context.set_stack_offset(offset);
+        child_context.set_rax(0);
+        Self {
+            name: self.name.clone(),
+            parent: Some(parent),
+            status: ProgramStatus::Ready,
+            context: child_context,
+            ticks_passed: 0,
+            exit_code: None,
+            children: Vec::new(),
+            proc_vm: Some(proc_vm),
+            proc_data: self.proc_data.clone(),
+        }
     }
 }
 

@@ -32,15 +32,7 @@ pub fn sys_read(fd: u8, buf: &mut [u8]) -> Option<usize> {
 
 #[inline(always)]
 pub fn sys_wait_pid(pid: u16) -> isize {
-    // FIXME: try to get the return value for process
-    //        loop until the process is finished
-    loop {
-        let ret = syscall!(Syscall::WaitPid, pid as u64);
-        if ret != 0xbee {
-            return ret as isize;
-        }
-        core::hint::spin_loop();
-    }
+    syscall!(Syscall::WaitPid, pid as u64) as isize
 }
 
 #[inline(always)]
@@ -82,4 +74,29 @@ pub fn sys_exit(code: isize) -> ! {
 #[inline(always)]
 pub fn sys_kill(pid: u16) {
     syscall!(Syscall::Kill, pid as u64);
+}
+
+#[inline(always)]
+pub fn sys_fork() -> u16 {
+    syscall!(Syscall::VFork) as u16
+}
+
+#[inline(always)]
+pub fn sys_new_sem(key: u32, value: usize) -> bool {
+    syscall!(Syscall::Sem, 0, key as u64, value) == 0
+}
+
+#[inline(always)]
+pub fn sys_sem_wait(key: u32) -> bool {
+    syscall!(Syscall::Sem, 1, key as u64) == 0
+}
+
+#[inline(always)]
+pub fn sys_sem_signal(key: u32) -> bool {
+    syscall!(Syscall::Sem, 2, key as u64) == 0
+}
+
+#[inline(always)]
+pub fn sys_sem_free(key: u32) -> bool {
+    syscall!(Syscall::Sem, 3, key as u64) == 0
 }

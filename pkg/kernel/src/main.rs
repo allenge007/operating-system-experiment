@@ -2,7 +2,7 @@
 #![no_main]
 
 use ysos::*;
-use ysos_kernel::{self as ysos, proc::ProcessId};
+use ysos_kernel as ysos;
 
 extern crate alloc;
 

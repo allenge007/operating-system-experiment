@@ -1,13 +1,4 @@
 use super::*;
-use crate::{
-    memory::{
-        PAGE_SIZE,
-        allocator::{ALLOCATOR, HEAP_SIZE},
-        get_frame_alloc_for_sure,
-        user::{USER_ALLOCATOR, USER_HEAP_SIZE},
-    },
-    utils::humanized_size,
-};
 use alloc::{format, collections::BTreeMap, collections::BTreeSet, collections::VecDeque, sync::Weak};
 use spin::{Mutex, RwLock};
 
@@ -207,14 +198,34 @@ impl ProcessManager {
 
         let proc = proc.unwrap();
 
-        if proc.read().status() == ProgramStatus::Dead {
-            warn!("Process #{} is already dead.", pid);
-            return;
-        }
-
         trace!("Kill {:#?}", &proc);
 
         proc.kill(ret);
+
+        if let Some(pids) = self.wait_queue.lock().remove(&pid) {
+            for p in pids {
+                self.wake_up(p, Some(ret));
+            }
+        }
+    }
+
+    pub fn vfork(&self) {
+        let child = self.current().vfork();
+        let pid = child.pid();
+        self.add_proc(pid, child);
+        self.push_ready(pid);
+        debug!("Current queue: {:?}", self.ready_queue.lock());
+    }
+
+    pub fn wake_up(&self, pid: ProcessId, ret: Option<isize>) {
+       if let Some(proc) = self.get_proc(&pid) {
+            let mut inner = proc.write();
+            if let Some(ret) = ret {
+                inner.set_return(ret as usize);
+            }
+            inner.pause();
+            self.push_ready(pid);
+       } 
     }
 
     pub fn print_process_list(&self) {

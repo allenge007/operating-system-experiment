@@ -81,6 +81,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
+name = "fork"
+version = "0.4.0"
+dependencies = [
+ "yslib",
+]
+
+[[package]]
 name = "futures-core"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -446,6 +453,13 @@ dependencies = [
  "x86_64",
  "xmas-elf",
  "ysos_elf",
+]
+
+[[package]]
+name = "ysos_counter"
+version = "0.4.0"
+dependencies = [
+ "yslib",
 ]
 
 [[package]]
