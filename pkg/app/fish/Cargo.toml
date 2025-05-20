@@ -1,0 +1,8 @@
+[package]
+name = "fish"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+lib = { workspace = true }

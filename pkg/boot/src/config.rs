@@ -28,7 +28,7 @@ const DEFAULT_CONFIG: Config = Config {
     kernel_path: "\\KERNEL.ELF",
     cmdline: "",
     load_apps: true,
-    log_level: "debug",
+    log_level: "info",
 };
 
 impl<'a> Config<'a> {

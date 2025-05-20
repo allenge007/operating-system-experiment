@@ -17,7 +17,7 @@ fn main() -> isize {
     let pid = sys_fork();
 
     if pid == 0 {
-        println!("I am the child process");
+        println!("I am the child process, pid: {}", pid);
 
         assert_eq!(c, 32);
 
