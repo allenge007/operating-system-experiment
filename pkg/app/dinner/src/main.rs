@@ -59,9 +59,9 @@ fn philosopher(id: usize, demo: u64) -> ! {
             delay(0x01000);
         } else {
             if demo == 2 {
-                if id == 0 || id == 3 {
+                if id != 1 {
                     delay(0x100);
-                } else {
+                } else if id == 1{
                     delay(0x10000);
                 }
             } else {
@@ -79,17 +79,23 @@ fn philosopher(id: usize, demo: u64) -> ! {
             println!("Philosopher {} (PID {}) picked up right chopstick {}.", id, pid, (id + 1) % PHILOSOPHER_COUNT);
         } else {
             // 正常及饥饿模式采用奇偶不同顺序
-            if id % 2 == 0 {
-                CHOPSTICKS[id].wait();
-                println!("Philosopher {} (PID {}) picked up left chopstick {}.", id, pid, id);
-                CHOPSTICKS[(id + 1) % PHILOSOPHER_COUNT].wait();
-                println!("Philosopher {} (PID {}) picked up right chopstick {}.", id, pid, (id + 1) % PHILOSOPHER_COUNT);
-            } else {
-                CHOPSTICKS[(id + 1) % PHILOSOPHER_COUNT].wait();
-                println!("Philosopher {} (PID {}) picked up right chopstick {}.", id, pid, (id + 1) % PHILOSOPHER_COUNT);
-                CHOPSTICKS[id].wait();
-                println!("Philosopher {} (PID {}) picked up left chopstick {}.", id, pid, id);
-            }
+            // if id % 2 == 0 {
+            //     CHOPSTICKS[id].wait();
+            //     println!("Philosopher {} (PID {}) picked up left chopstick {}.", id, pid, id);
+            //     CHOPSTICKS[(id + 1) % PHILOSOPHER_COUNT].wait();
+            //     println!("Philosopher {} (PID {}) picked up right chopstick {}.", id, pid, (id + 1) % PHILOSOPHER_COUNT);
+            // } else {
+            //     CHOPSTICKS[(id + 1) % PHILOSOPHER_COUNT].wait();
+            //     println!("Philosopher {} (PID {}) picked up right chopstick {}.", id, pid, (id + 1) % PHILOSOPHER_COUNT);
+            //     CHOPSTICKS[id].wait();
+            //     println!("Philosopher {} (PID {}) picked up left chopstick {}.", id, pid, id);
+            // }
+            // 正常模式下使用 WAITER，避免死锁
+            WAITER.wait();
+            CHOPSTICKS[id].wait();
+            println!("Philosopher {} (PID {}) picked up chopstick {}.", id, pid, id);
+            CHOPSTICKS[(id + 1) % PHILOSOPHER_COUNT].wait();
+            println!("Philosopher {} (PID {}) picked up chopstick {}.", id, pid, (id + 1) % PHILOSOPHER_COUNT);
         }
 
         println!("Philosopher {} (PID {}) is eating (turn {}).", id, pid, turn + 1);

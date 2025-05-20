@@ -92,45 +92,35 @@ impl ProcessManager {
     }
 
     pub fn save_current(&self, context: &ProcessContext) -> ProcessId {
-        // FIXME: update current process's tick count
         let cur = self.current();
         let pid = cur.pid();
-
-        let mut cur = cur.write();
-        cur.tick();
-        cur.save(context);
+        {
+            let mut cur_w = cur.write();
+            cur_w.tick();
+            cur_w.save(context);
+        }
         pid
     }
 
     pub fn switch_next(&self, context: &mut ProcessContext) -> ProcessId {
-
-        // FIXME: fetch the next process from ready queue
-        // FIXME: check if the next process is ready,
-        //        continue to fetch if not ready
         let mut pid = processor::get_pid();
-
-        while let Some(next) = self.ready_queue.lock().pop_front() {
-            let map = self.processes.read();
-            let proc = map.get(&next).expect("Process not found");
-
+        let mut ready_q = self.ready_queue.lock();
+        while let Some(next) = ready_q.pop_front() {
+            let proc = {
+                let map = self.processes.read();
+                map.get(&next).expect("Process not found").clone()
+            };
             if !proc.read().is_ready() {
                 debug!("Process #{} is {:?}", next, proc.read().status());
                 continue;
             }
-
             if pid != next {
-                // FIXME: restore next process's context
                 proc.write().restore(context);
-                // debug!("Switch to process #{}", next);
-                // FIXME: update processor's current pid
                 processor::set_pid(next);
                 pid = next;
             }
-
             break;
         }
-        // print_process_list();
-        // FIXME: return next process's pid
         pid
     }
 
@@ -145,22 +135,19 @@ impl ProcessManager {
         let page_table = kproc.read().clone_page_table();
         let proc_vm = Some(ProcessVm::new(page_table));
         let proc = Process::new(name, parent, proc_vm, proc_data);
-
-        let mut inner = proc.write();
-        inner.pause();
-        inner.load_elf(elf);
-        inner.init_stack_frame(
-            VirtAddr::new_truncate(elf.header.pt2.entry_point()),
-            VirtAddr::new_truncate(super::stack::STACK_INIT_TOP),
-        );
-        drop(inner);
-
+        {
+            let mut proc_w = proc.write();
+            proc_w.pause();
+            proc_w.load_elf(elf);
+            proc_w.init_stack_frame(
+                VirtAddr::new_truncate(elf.header.pt2.entry_point()),
+                VirtAddr::new_truncate(super::stack::STACK_INIT_TOP),
+            );
+        }
         trace!("New {:#?}", &proc);
-
         let pid = proc.pid();
         self.add_proc(pid, proc);
         self.push_ready(pid);
-
         pid
     }
 
@@ -189,22 +176,18 @@ impl ProcessManager {
     }
 
     pub fn kill(&self, pid: ProcessId, ret: isize) {
-        let proc = self.get_proc(&pid);
-
-        if proc.is_none() {
-            warn!("Process #{} not found.", pid);
-            return;
-        }
-
-        let proc = proc.unwrap();
-
-        trace!("Kill {:#?}", &proc);
-
-        proc.kill(ret);
-
-        if let Some(pids) = self.wait_queue.lock().remove(&pid) {
-            for p in pids {
-                self.wake_up(p, Some(ret));
+        match self.get_proc(&pid) {
+            Some(proc) => {
+                trace!("Kill {:#?}", &proc);
+                proc.kill(ret);
+                if let Some(waiters) = self.wait_queue.lock().remove(&pid) {
+                    for waiter in waiters {
+                        self.wake_up(waiter, Some(ret));
+                    }
+                }
+            }
+            None => {
+                warn!("Process #{} not found.", pid);
             }
         }
     }
