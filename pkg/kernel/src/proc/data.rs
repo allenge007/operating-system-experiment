@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeMap, sync::Arc};
 use spin::RwLock;
-use crate::{resource::ResourceSet};
+use crate::{resource::ResourceSet, Resource};
 use super::*;
 
 #[derive(Debug, Clone)]
@@ -40,6 +40,18 @@ impl ProcessData {
 
     pub fn write(&self, fd: u8, buf: &[u8]) -> isize {
         self.resources.read().write(fd, buf)
+    }
+
+    /// Opens a resource and adds it to the process's resource set.
+    /// Returns the file descriptor.
+    pub fn open_resource(&self, resource: Resource) -> u8 {
+        self.resources.write().open(resource)
+    }
+
+    /// Closes a resource by its file descriptor.
+    /// Returns true if the resource was successfully closed.
+    pub fn close_resource(&self, fd: u8) -> bool {
+        self.resources.write().close(fd)
     }
 
     #[inline]

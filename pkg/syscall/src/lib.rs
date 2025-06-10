@@ -10,6 +10,9 @@ pub enum Syscall {
     Read = 0,
     Write = 1,
 
+    Open = 14,
+    Close = 15,
+    ListDir = 16,
     GetPid = 39,
     
     VFork = 40,

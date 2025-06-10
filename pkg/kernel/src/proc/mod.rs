@@ -19,6 +19,7 @@ pub use data::ProcessData;
 pub use paging::PageTableContext;
 pub use pid::ProcessId;
 pub use vm::*;
+pub use manager::get_process_manager;
 use xmas_elf::ElfFile;
 
 use alloc::string::{String, ToString};

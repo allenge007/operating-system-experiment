@@ -50,7 +50,8 @@ pub fn init(boot_info: &'static BootInfo) {
     memory::init(boot_info); // init memory manager
     memory::user::init(); // init user memory manager
     proc::init(boot_info); // init process manager
-    
+    filesystem::init();
+
     x86_64::instructions::interrupts::enable();
     info!("Interrupts Enabled.");
 

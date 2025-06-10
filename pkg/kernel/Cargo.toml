@@ -8,6 +8,7 @@ authors.workspace = true
 [dependencies]
 boot = { workspace = true }
 elf = { workspace = true }
+storage = { workspace = true }
 syscall_def = { workspace = true }
 uefi = { workspace = true }
 lazy_static = { workspace = true }

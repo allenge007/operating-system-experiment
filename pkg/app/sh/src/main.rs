@@ -14,7 +14,7 @@ use owo_colors::OwoColorize;
 /// 定义简单的高亮函数，根据预定义命令高亮首个单词
 fn highlight(input: &str) -> String {
     // 定义预期高亮的命令列表
-    let commands = ["ps", "ls", "exec", "kill", "help", "clear", "exit"];
+    let commands = ["ps", "ls", "exec", "kill", "help", "clear", "exit", "cat", "lsapp"];
     // 尝试拆分输入，取第一个单词进行匹配
     if let Some((first, rest)) = input.split_once(' ') {
         for &cmd in commands.iter() {
@@ -189,7 +189,26 @@ fn main() -> isize {
                 break;
             }
             &"ps" => sys_stat(),
-            &"ls" => sys_list_app(),
+            &"ls" => {
+                let path_to_list = if line.len() >= 2 {
+                    line[1]
+                } else {
+                    "/" // Default to root directory if no path is specified
+                };
+                // Assuming lib::list_dir handles printing and syscall
+                if let Err(e) = list_dir(path_to_list) {
+                    errln!("ls: {}", e);
+                }
+            },
+            &"cat" => {
+                if line.len() < 2 {
+                    println!("Usage: cat <file>");
+                    continue;
+                }
+                services::cat_file(line[1]);
+                println!();
+            },
+            &"lsapp" => sys_list_app(),
             &"exec" => {
                 if line.len() < 2 {
                     println!("Usage: exec <file>");

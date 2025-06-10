@@ -2,6 +2,9 @@ use core::alloc::Layout;
 
 use crate::proc::*;
 use crate::memory::*;
+use crate::drivers::filesystem;
+use crate::utils::resource::Resource;
+use crate::proc::get_process_manager;
 
 use super::SyscallArgs;
 
@@ -147,5 +150,112 @@ pub fn sys_sem(args: &SyscallArgs, context: &mut ProcessContext) {
         2 => sem_signal(args.arg1 as u32, context),
         3 => context.set_rax(remove_sem(args.arg1 as u32)),
         _ => context.set_rax(usize::MAX),
+    }
+}
+
+pub fn list_dir(args: &SyscallArgs) -> usize {
+    let path_ptr = args.arg0 as *const u8;
+    let path_len = args.arg1;
+
+    // 参数验证
+    if path_ptr.is_null() || path_len == 0 {
+        warn!("list_dir: Invalid parameters (ptr: {:p}, len: {})", path_ptr, path_len);
+        return 1; // 返回错误码 1
+    }
+
+    // 长度合理性检查
+    if path_len > 4096 {  // 防止过长的路径
+        warn!("list_dir: Path too long: {}", path_len);
+        return 2; // 返回错误码 2
+    }
+
+    // 安全地从用户空间读取路径字符串
+    let path_slice = unsafe {
+        core::slice::from_raw_parts(path_ptr, path_len)
+    };
+
+    let path_str = match core::str::from_utf8(path_slice) {
+        Ok(s) => s,
+        Err(e) => {
+            warn!("list_dir: Invalid UTF-8 in path: {:?}", e);
+            return 3; // 返回错误码 3
+        }
+    };
+
+    trace!("list_dir: Listing directory '{}'", path_str);
+
+    // 调用文件系统的 ls 函数
+    filesystem::ls(path_str);
+    
+    0 // 成功返回 0
+}
+
+/// 打开文件
+/// path: &str (arg0 as *const u8, arg1 as len) -> fd: u8 (or -1 on error)
+pub fn sys_open(args: &SyscallArgs) -> usize {
+    let path_ptr = args.arg0 as *const u8;
+    let path_len = args.arg1;
+
+    // 参数验证
+    if path_ptr.is_null() || path_len == 0 {
+        warn!("sys_open: Invalid parameters");
+        return usize::MAX; // 返回 -1（转换为 usize）
+    }
+
+    if path_len > 4096 {
+        warn!("sys_open: Path too long: {}", path_len);
+        return usize::MAX;
+    }
+
+    // 安全地从用户空间读取路径字符串
+    let path_slice = unsafe {
+        core::slice::from_raw_parts(path_ptr, path_len)
+    };
+
+    let path_str = match core::str::from_utf8(path_slice) {
+        Ok(s) => s,
+        Err(_) => {
+            warn!("sys_open: Invalid UTF-8 in path");
+            return usize::MAX;
+        }
+    };
+
+    trace!("sys_open: Opening file '{}'", path_str);
+
+    // 获取当前进程
+    let process_arc = get_process_manager().current(); // Corrected: Use get_process_manager().current()
+
+    // 通过文件系统打开文件
+    match filesystem::get_rootfs().fs.open_file(path_str) {
+        Ok(file_handle) => {
+            // 将文件句柄添加到进程的资源集合中
+            let fd = process_arc.write().open_resource(Resource::File(file_handle));
+            trace!("sys_open: Opened file '{}' with fd {}", path_str, fd);
+            fd as usize
+        }
+        Err(e) => {
+            warn!("sys_open: Failed to open file '{}': {:?}", path_str, e);
+            usize::MAX
+        }
+    }
+}
+
+/// 关闭文件描述符
+/// fd: arg0 as u8 -> result: usize (0 = success, -1 = error)
+pub fn sys_close(args: &SyscallArgs) -> usize {
+    let fd = args.arg0 as u8;
+
+    trace!("sys_close: Closing fd {}", fd);
+
+    // 获取当前进程
+    let process_arc = get_process_manager().current(); // Corrected: Use get_process_manager().current()
+
+    // 关闭文件描述符
+    if process_arc.write().close_resource(fd) {
+        trace!("sys_close: Successfully closed fd {}", fd);
+        0
+    } else {
+        warn!("sys_close: Failed to close fd {} (not found)", fd);
+        usize::MAX
     }
 }

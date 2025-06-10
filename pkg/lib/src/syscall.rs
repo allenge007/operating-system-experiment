@@ -100,3 +100,61 @@ pub fn sys_sem_signal(key: u32) -> bool {
 pub fn sys_sem_free(key: u32) -> bool {
     syscall!(Syscall::Sem, 3, key as u64) == 0
 }
+
+#[inline(always)]
+pub fn list_dir(path: &str) -> Result<(), &'static str> {
+    let ret = syscall!(
+        Syscall::ListDir,
+        path.as_ptr() as u64,
+        path.len() as u64
+    ) as usize;
+    
+    match ret {
+        0 => Ok(()),
+        1 => Err("Null path pointer"),
+        2 => Err("Empty path"),
+        3 => Err("Path too long"),
+        4 => Err("Invalid UTF-8 in path"),
+        5 => Err("Empty path string"),
+        _ => Err("Unknown error"),
+    }
+}
+
+/// 打开文件
+#[inline(always)]
+pub fn open(path: &str) -> Result<u8, &'static str> {
+    let ret = syscall!(
+        Syscall::Open,
+        path.as_ptr() as u64,
+        path.len() as u64
+    ) as usize;
+    
+    if ret == usize::MAX {
+        Err("Failed to open file")
+    } else {
+        Ok(ret as u8)
+    }
+}
+
+/// 关闭文件描述符
+#[inline(always)]
+pub fn close(fd: u8) -> Result<(), &'static str> {
+    let ret = syscall!(Syscall::Close, fd as u64) as usize;
+    
+    if ret == 0 {
+        Ok(())
+    } else {
+        Err("Failed to close file")
+    }
+}
+
+/// 从文件描述符读取数据
+#[inline(always)]
+pub fn read(fd: u8, buf: &mut [u8]) -> isize {
+    syscall!(
+        Syscall::Read,
+        fd as u64,
+        buf.as_mut_ptr() as u64,
+        buf.len() as u64
+    ) as isize
+}

@@ -1,6 +1,7 @@
 use crate::drivers::input::*;
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use spin::Mutex;
+use storage::common::FileHandle;
 
 #[derive(Debug, Clone)]
 pub enum StdIO {
@@ -67,6 +68,7 @@ impl ResourceSet {
 
 pub enum Resource {
     Console(StdIO),
+    File(FileHandle),
     Null,
 }
 
@@ -85,6 +87,16 @@ impl Resource {
                 }
                 _ => None,
             },
+            Resource::File(file_handle) => {
+                // 从文件读取数据
+                match file_handle.read(buf) {
+                    Ok(bytes_read) => Some(bytes_read),
+                    Err(e) => {
+                        warn!("File read error: {:?}", e);
+                        None
+                    }
+                }
+            },
             Resource::Null => Some(0),
         }
     }
@@ -102,6 +114,11 @@ impl Resource {
                     Some(buf.len())
                 }
             },
+            Resource::File(_file_handle) => {
+                // 文件写入暂不实现，直接忽略
+                warn!("File write not implemented");
+                None
+            },
             Resource::Null => Some(buf.len()),
         }
     }
@@ -111,6 +128,7 @@ impl core::fmt::Debug for Resource {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Resource::Console(stdio) => write!(f, "Console({:?})", stdio),
+            Resource::File(file_handle) => write!(f, "File({:?})", file_handle), // Added this arm
             Resource::Null => write!(f, "Null"),
         }
     }

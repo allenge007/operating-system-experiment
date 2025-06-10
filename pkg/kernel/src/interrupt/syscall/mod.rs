@@ -72,6 +72,12 @@ pub fn dispatcher(context: &mut ProcessContext) {
         // None -> pid: u16
         Syscall::VFork => sys_vfork(context),
         Syscall::Sem => sys_sem(&args, context),
+        // path: &str (arg0 as *const u8, arg1 as len) -> result: usize (0 = success)
+        Syscall::ListDir => context.set_rax(list_dir(&args)),
+        // path: &str (arg0 as *const u8, arg1 as len) -> fd: u8
+        Syscall::Open => context.set_rax(sys_open(&args)),
+        // fd: arg0 as u8 -> result: usize (0 = success)
+        Syscall::Close => context.set_rax(sys_close(&args)),
 
         // layout: arg0 as *const Layout -> ptr: *mut u8
         Syscall::Allocate => context.set_rax(sys_allocate(&args)),
