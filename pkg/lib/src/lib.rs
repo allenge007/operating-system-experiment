@@ -1,6 +1,6 @@
-#![cfg_attr(not(test), no_std)]
 #![allow(dead_code, unused_imports)]
 #![feature(alloc_error_handler)]
+#![cfg_attr(not(test), no_std)]
 
 #[macro_use]
 pub mod macros;
@@ -19,9 +19,15 @@ mod syscall;
 use core::fmt::*;
 
 pub use alloc::*;
+pub use chrono::*;
 pub use io::*;
-pub use syscall::*;
 pub use sync::*;
+pub use syscall::*;
+
+pub fn init() {
+    #[cfg(feature = "brk_alloc")]
+    crate::allocator::init();
+}
 
 #[macro_export]
 macro_rules! print {
@@ -47,8 +53,7 @@ macro_rules! errln {
 
 #[doc(hidden)]
 pub fn _print(args: Arguments) {
-    let _ = stdout().write_fmt(args);
-    stdout().flush();
+    stdout().write(format!("{}", args).as_str());
 }
 
 #[doc(hidden)]
