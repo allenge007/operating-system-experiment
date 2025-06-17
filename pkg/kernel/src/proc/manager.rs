@@ -1,6 +1,8 @@
 use super::*;
 use alloc::{format, collections::BTreeMap, collections::BTreeSet, collections::VecDeque, sync::Weak};
 use spin::{Mutex, RwLock};
+use crate::memory::{PAGE_SIZE, get_frame_alloc_for_sure, FRAME_ALLOCATOR}; // 确保导入 FRAME_ALLOCATOR 和 PAGE_SIZE
+use crate::humanized_size; // 确保导入 humanized_size 函数
 
 pub static PROCESS_MANAGER: spin::Once<ProcessManager> = spin::Once::new();
 
@@ -15,6 +17,33 @@ pub fn get_process_manager() -> &'static ProcessManager {
     PROCESS_MANAGER
         .get()
         .expect("Process Manager has not been initialized")
+}
+
+fn format_system_memory_usage(name: &str, used_bytes: u64, total_bytes: u64) -> String {
+    if total_bytes == 0 {
+        return format!(
+            "{:<6} : {:>6} {:>3} / {:>6} {:>3} (  N/A  %)\n", // 中文冒号
+            name,
+            humanized_size(used_bytes as u64).0,
+            humanized_size(used_bytes as u64).1,
+            humanized_size(total_bytes as u64).0,
+            humanized_size(total_bytes as u64).1
+        );
+    }
+    let (used_float, used_unit) = humanized_size(used_bytes as u64);
+    let (total_float, total_unit) = humanized_size(total_bytes as u64);
+
+    format!(
+        "{:<6} ：{:>6.*} {:>3} / {:>6.*} {:>3} ({:>5.2}%)\n", // 中文冒号
+        name,
+        2, // 小数点后两位
+        used_float,
+        used_unit,
+        2, // 小数点后两位
+        total_float,
+        total_unit,
+        used_bytes as f32 / total_bytes as f32 * 100.0
+    )
 }
 
 pub struct ProcessManager {
@@ -212,20 +241,34 @@ impl ProcessManager {
     }
 
     pub fn print_process_list(&self) {
-        let mut output = String::from("  PID | PPID | Process Name |  Ticks  | Status\n");
+        let mut output = String::from("  PID | PPID | ProcesName       | MemoryUsage |  Ticks  | Status\n"); // 修改表头为中文，并调整列名
 
         self.processes
             .read()
             .values()
             .filter(|p| p.read().status() != ProgramStatus::Dead)
-            .for_each(|p| output += format!("{}\n", p).as_str());
+            .for_each(|p| output += &format!("{}\n", p));
 
-        // TODO: print memory usage of kernel heap
+        if let Some(alloc_mutex) = FRAME_ALLOCATOR.get() {
+            let alloc = alloc_mutex.lock();
+            let frames_used = alloc.frames_used();
+            let frames_recycled = alloc.frames_recycled_count();
+            let frames_total = alloc.frames_total();
 
-        output += format!("Queue  : {:?}\n", self.ready_queue.lock()).as_str();
+            // (已用帧 - 已回收帧) * 页大小
+            let active_system_frames = frames_used.saturating_sub(frames_recycled);
+            let used_mem_bytes = active_system_frames as u64 * PAGE_SIZE;
+            let total_mem_bytes = frames_total as u64 * PAGE_SIZE;
+            
+            output += &format_system_memory_usage("SystemMemory", used_mem_bytes, total_mem_bytes);
+        } else {
+            output += "SystemMemory: frame allocator do not init\n";
+        }
 
-        output += &processor::print_processors();
+        output += &format!("ready_queue：{:?}\n", self.ready_queue.lock()); // 中文标签
 
-        print!("{}", output);
+        output += &processor::print_processors(); // 假设这个函数存在
+
+        print!("{}", output); // 最终打印
     }
 }

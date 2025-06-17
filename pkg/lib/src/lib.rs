@@ -53,7 +53,8 @@ macro_rules! errln {
 
 #[doc(hidden)]
 pub fn _print(args: Arguments) {
-    stdout().write(format!("{}", args).as_str());
+    use core::fmt::Write;
+    let _ = stdout().write_fmt(args);
 }
 
 #[doc(hidden)]

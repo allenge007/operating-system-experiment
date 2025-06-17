@@ -72,6 +72,32 @@ impl Stack {
         }
     }
 
+    pub fn memory_usage(&self) -> u64 {
+        self.usage * Size4KiB::SIZE
+    }
+        pub(super) fn clean_up(
+        &mut self,
+        mapper: MapperRef,
+        dealloc: FrameAllocatorRef,
+    ) -> Result<(), UnmapError> {
+        if self.usage == 0 {
+            return Ok(());
+        }
+        // elf::unmap_pages 期望起始地址和页数
+        // self.range 是 PageRange<Size4KiB>
+        // PageRange 包含 start 和 end Page
+        // PageRangeInclusive 包含 start 和 end Page
+        let start_addr = self.range.start.start_address().as_u64();
+        let page_count = self.range.count(); // PageRange::count() 返回 usize
+
+        if page_count > 0 {
+            elf::unmap_pages(start_addr, page_count as u64, mapper, dealloc, true)?;
+        }
+
+        self.usage = 0;
+        Ok(())
+    }
+
     pub fn init(&mut self, mapper: MapperRef, alloc: FrameAllocatorRef) {
         debug_assert!(self.usage == 0, "Stack is not empty.");
 

@@ -281,16 +281,15 @@ fn main() -> isize {
             }
             &"help" => utils::show_help_text(),
             &"clear" => utils::clear_screen(),
-            &"lsapp" => { // 假设 lsapp 是一个服务
-                // services::list_applications();
+            &"lsapp" => {
+                sys_list_app();
             }
             // exec 和 kill 通常需要更复杂的参数解析和内核交互
             &"exec" => {
                 if line.len() < 2 {
                     println!("Usage: exec <program_name> [args...]");
                 } else {
-                    // services::execute_program(line[1], &line[2..]);
-                    println!("Executing '{}' (not fully implemented)", line[1]);
+                    services::exec(line[1]);
                 }
             }
             &"kill" => {
@@ -298,8 +297,7 @@ fn main() -> isize {
                     println!("Usage: kill <pid>");
                 } else {
                     if let Ok(pid) = line[1].parse::<u16>() {
-                        // services::kill_process(pid);
-                        println!("Killing process {} (not fully implemented)", pid);
+                        services::kill(pid);
                     } else {
                         errln!("kill: Invalid PID: {}", line[1]);
                     }
@@ -318,6 +316,3 @@ fn main() -> isize {
 }
 
 entry!(main);
-
-// sys_stat, services::cat_file, services::list_applications 等也需要你的实际定义
-fn sys_stat() { println!("Process status (not implemented)"); }

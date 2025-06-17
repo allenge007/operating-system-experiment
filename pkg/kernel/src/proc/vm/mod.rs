@@ -95,12 +95,19 @@ impl ProcessVm {
     }
 
     fn load_elf_code(&mut self, elf: &ElfFile, mapper: MapperRef, alloc: FrameAllocatorRef) {
-        // FIXME: make the `load_elf` function return the code pages
-        self.code =
-            elf::load_elf(elf, *PHYSICAL_OFFSET.get().unwrap(), mapper, alloc, true).unwrap();
-
-        // FIXME: calculate code usage
-        self.code_usage = /* The code usage */;
+        // DONE: make the `load_elf` function return the code pages
+        // DONE: calculate code usage
+        let result = elf::load_elf(elf, *PHYSICAL_OFFSET.get().unwrap(), mapper, alloc, true);
+        match result {
+            Ok((loaded_code_pages, total_code_usage_bytes)) => {
+                self.code = loaded_code_pages;
+                self.code_usage = total_code_usage_bytes;
+            }
+            Err(e) => {
+                error!("Failed to load ELF for process: {:?}", e);
+                panic!("ELF loading failed: {:?}", e);
+            }
+        }
     }
 
     pub fn fork(&self, stack_offset_count: u64) -> Self {
@@ -111,7 +118,7 @@ impl ProcessVm {
 
         Self {
             page_table: owned_page_table,
-            stack: self.stack.fork(mapper, alloc, stack_offset_count),
+            stack: self.stack.vfork(mapper, alloc, stack_offset_count),
             heap: self.heap.fork(),
 
             // do not share code info

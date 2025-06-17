@@ -468,6 +468,7 @@ version = "0.4.0"
 dependencies = [
  "chrono",
  "linked_list_allocator",
+ "spin 0.10.0",
  "ysos_syscall",
 ]
 

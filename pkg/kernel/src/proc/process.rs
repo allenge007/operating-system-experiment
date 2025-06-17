@@ -4,6 +4,7 @@ use alloc::vec::Vec;
 use alloc::sync::Arc;
 use crate::proc::vm::ProcessVm;
 use spin::*;
+use crate::humanized_size;
 
 #[derive(Clone)]
 pub struct Process {
@@ -234,7 +235,7 @@ impl ProcessInner {
     }
     
     pub fn vfork(&mut self, parent: Weak<Process>) -> ProcessInner{
-        let proc_vm = self.vm().vfork(self.children.len() as u64 + 1);
+        let proc_vm = self.vm().fork(self.children.len() as u64 + 1);
         let offset = proc_vm.stack.stack_offset(&self.vm().stack);
         let mut child_context = self.context;
         child_context.set_stack_offset(offset);
@@ -300,15 +301,22 @@ impl core::fmt::Debug for Process {
 impl core::fmt::Display for Process {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let inner = self.inner.read();
+        let (size, unit) = inner.proc_vm.as_ref().map_or((0.0, "B"), |vm| {
+            let usage = vm.memory_usage();
+            humanized_size(usage)
+        });
+
         write!(
             f,
-            " #{:-3} | #{:-3} | {:12} | {:7} | {:?}",
-            self.pid.0,
-            inner.parent().map(|p| p.pid.0).unwrap_or(0),
-            inner.name,
-            inner.ticks_passed,
-            inner.status
-        )?;
-        Ok(())
+            // 在 Process Name 和 Ticks 之间添加了内存占用的列
+            " #{:<3} | #{:<3} | {:<12} | {:>5.1} {:<2} | {:<7} | {:?}",
+            self.pid.0, // PID
+            inner.parent().map(|p| p.pid.0).unwrap_or(0), // PPID
+            inner.name,                                   // 进程名
+            size,                                         // 内存大小
+            unit,                                         // 内存单位
+            inner.ticks_passed,                           // Ticks
+            inner.status                                  // 状态
+        )
     }
 }
