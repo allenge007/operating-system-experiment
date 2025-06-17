@@ -151,7 +151,9 @@ impl Fat16Impl {
     pub fn find_entry(&self, dir_cluster: &Cluster, name: &str) -> FsResult<Option<DirEntry>> {
         let entries = self.read_dir_entries(dir_cluster)?;
         let target_name = ShortFileName::parse(name)?;
-
+        if name.is_empty() {
+            return Ok(None); // 空名称不匹配任何条目
+        }
         for entry in entries {
             if entry.filename == target_name {
                 return Ok(Some(entry));
@@ -167,14 +169,23 @@ impl Fat16Impl {
         if path.is_empty() {
             return Ok(None); // 根目录没有对应的 DirEntry
         }
-
+        // info!("Finding path: {}", path);
         let parts: Vec<&str> = path.split('/').collect();
         let mut current_cluster = Cluster::ROOT_DIR;
-
+        let mut lenth = 0;
+        for (i, part) in parts.iter().enumerate() {
+            if part.is_empty() {
+                continue; // 跳过空部分
+            }
+            lenth += 1;
+        }
+        info!("Path parts: {:?}, length: {}", parts, lenth);
         for (i, part) in parts.iter().enumerate() {
             if let Some(entry) = self.find_entry(&current_cluster, part)? {
-                if i == parts.len() - 1 {
+                info!("Found entry: {:?}", entry);
+                if i == lenth - 1 {
                     // 找到目标文件/目录
+                    info!("Returning entry: {:?}", entry);
                     return Ok(Some(entry));
                 } else {
                     // 中间路径必须是目录
@@ -272,7 +283,7 @@ impl FileSystem for Fat16 {
                     return Err(FsError::NotADirectory);
                 }
             } else {
-                return Err(FsError::FileNotFound);
+                return Err(FsError::NotADirectory);
             }
         };
 

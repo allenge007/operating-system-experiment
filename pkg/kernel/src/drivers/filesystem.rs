@@ -34,6 +34,7 @@ pub fn init() {
 }
 
 pub fn ls(root_path: &str) {
+    info!("Listing directory: {}", root_path);
     let iter = match get_rootfs().read_dir(root_path) {
         Ok(iter) => iter,
         Err(err) => {

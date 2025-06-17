@@ -2,7 +2,7 @@ use owo_colors::{OwoColorize};
 use alloc::string::String;
 use lib::*;
 
-fn clear_screen() {
+pub fn clear_screen() {
     print!("\x1b[1;1H\x1b[2J");
 }
 
@@ -31,7 +31,7 @@ pub fn show_welcome_text() {
 /// 提示符分为两行：
 /// 第一行显示 "[ysos@machine] [~]"，
 /// 第二行显示 "╰─> " 作为命令输入提示符。
-pub fn print_prompt() {
+pub fn print_prompt(path: &str) {
     // 第一行：构建带颜色的用户、主机和路径信息，主要使用天蓝色
     let user_binding = "ysos".bright_cyan();
     let user_part = user_binding.bold();
@@ -39,7 +39,7 @@ pub fn print_prompt() {
     let host_binding = "machine".bright_purple();
     let host_part = host_binding.bold();
     
-    let path_binding = "~".bright_cyan();
+    let path_binding = path.bright_cyan();
     let path_part = path_binding.bold();
     
     print!("{}", "╭─".white());
