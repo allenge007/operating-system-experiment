@@ -75,7 +75,8 @@ impl Stack {
     pub fn memory_usage(&self) -> u64 {
         self.usage * Size4KiB::SIZE
     }
-        pub(super) fn clean_up(
+    
+    pub(super) fn clean_up(
         &mut self,
         mapper: MapperRef,
         dealloc: FrameAllocatorRef,

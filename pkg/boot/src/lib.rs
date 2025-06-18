@@ -9,6 +9,7 @@ use arrayvec::{ArrayVec, ArrayString};
 use core::ptr::NonNull;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{OffsetPageTable, PageTable};
+use x86_64::structures::paging::page::PageRangeInclusive;
 use x86_64::VirtAddr;
 use xmas_elf::ElfFile;
 
@@ -32,10 +33,13 @@ pub struct App {
 
 pub type AppList = ArrayVec<App, APP_LIST_MAX>;
 pub type AppListRef = Option<&'static AppList>;
+pub type KernelPages = ArrayVec<PageRangeInclusive, 8>;
 /// This structure represents the information that the bootloader passes to the kernel.
 pub struct BootInfo {
     /// The memory map
     pub memory_map: MemoryMap,
+
+    pub kernel_pages: KernelPages,
 
     /// The offset into the virtual address space where the physical memory is mapped.
     pub physical_memory_offset: u64,

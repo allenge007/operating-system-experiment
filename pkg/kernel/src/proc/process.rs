@@ -252,6 +252,10 @@ impl ProcessInner {
             proc_data: self.proc_data.clone(),
         }
     }
+
+    pub fn brk(&mut self, addr: Option<VirtAddr>) -> Option<VirtAddr> {
+        self.vm_mut().brk(addr)
+    }
 }
 
 impl core::ops::Deref for Process {

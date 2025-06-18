@@ -78,6 +78,10 @@ pub fn dispatcher(context: &mut ProcessContext) {
         Syscall::Open => context.set_rax(sys_open(&args)),
         // fd: arg0 as u8 -> result: usize (0 = success)
         Syscall::Close => context.set_rax(sys_close(&args)),
+        Syscall::Brk => {
+            let ret = sys_brk(&args);
+            context.set_rax(ret as usize);
+        },
 
         // layout: arg0 as *const Layout -> ptr: *mut u8
         Syscall::Allocate => context.set_rax(sys_allocate(&args)),

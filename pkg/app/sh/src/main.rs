@@ -284,12 +284,13 @@ fn main() -> isize {
             &"lsapp" => {
                 sys_list_app();
             }
-            // exec 和 kill 通常需要更复杂的参数解析和内核交互
             &"exec" => {
                 if line.len() < 2 {
                     println!("Usage: exec <program_name> [args...]");
                 } else {
+                    println!("Executing: {}", line[1]);
                     services::exec(line[1]);
+                    println!("Program {} executed.", line[1]);
                 }
             }
             &"kill" => {

@@ -158,3 +158,12 @@ pub fn read(fd: u8, buf: &mut [u8]) -> isize {
         buf.len() as u64
     ) as isize
 }
+
+#[inline(always)]
+pub fn sys_brk(addr: Option<usize>) -> Option<usize> {
+    const BRK_FAILED: usize = !0;
+    match syscall!(Syscall::Brk, addr.unwrap_or(0)) {
+        BRK_FAILED => None,
+        ret => Some(ret),
+    }
+}

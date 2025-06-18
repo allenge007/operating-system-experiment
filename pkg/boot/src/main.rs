@@ -15,6 +15,9 @@ use xmas_elf::ElfFile;
 use ysos_boot::allocator::*;
 use ysos_boot::fs::*;
 use ysos_boot::*;
+use x86_64::structures::paging::page::PageRangeInclusive;
+use xmas_elf::program::ProgramHeader;
+use arrayvec::ArrayVec;
 
 mod config;
 
@@ -79,7 +82,7 @@ fn efi_main() -> Status {
         &mut UEFIFrameAllocator,
     );
 
-    elf::load_elf(
+    let (kernel_pages, _) = elf::load_elf(
         &elf,
         config.physical_memory_offset,
         &mut page_table,
@@ -96,11 +99,7 @@ fn efi_main() -> Status {
         (config.kernel_stack_address, config.kernel_stack_size)
     };
 
-    info!(
-        "Kernel init stack: [0x{:x?} -> 0x{:x?})",
-        stack_start,
-        stack_start + stack_size * 0x1000
-    );
+    let kernel_pages_arrayvec: ArrayVec<PageRangeInclusive, 8> = kernel_pages.into_iter().collect();
 
     elf::map_pages(
         stack_start,
@@ -110,13 +109,13 @@ fn efi_main() -> Status {
         false,
     )
     .expect("Failed to map stack");
+    
+    free_elf(elf);
 
     // recover write protect
     unsafe {
         Cr0::update(|f| f.insert(Cr0Flags::WRITE_PROTECT));
     }
-
-    free_elf(elf);
 
     // 5. Pass system table to kernel
     let ptr = uefi::table::system_table_raw().expect("Failed to get system table");
@@ -124,6 +123,7 @@ fn efi_main() -> Status {
 
     // 6. Exit boot and jump to ELF entry
     info!("Exiting boot services...");
+    // info!("Kernel pages: {:#x?}", kernel_pages);
 
     let mmap = unsafe { uefi::boot::exit_boot_services(MemoryType::LOADER_DATA) };
     // NOTE: alloc & log can no longer be used
@@ -131,6 +131,7 @@ fn efi_main() -> Status {
     // 7. Construct BootInfo
     let bootinfo = BootInfo {
         memory_map: mmap.entries().copied().collect(),
+        kernel_pages: kernel_pages_arrayvec,
         physical_memory_offset: config.physical_memory_offset,
         load_apps: apps,
         log_level: config.log_level,
@@ -148,4 +149,19 @@ fn current_page_table() -> OffsetPageTable<'static> {
     let p4_table_addr = Cr3::read().0.start_address().as_u64();
     let p4_table = unsafe { &mut *(p4_table_addr as *mut PageTable) };
     unsafe { OffsetPageTable::new(p4_table, VirtAddr::new(0)) }
+}
+
+pub fn get_page_usage(elf: &ElfFile) -> KernelPages {
+    elf.program_iter()
+        .filter(|segment| segment.get_type() == Ok(xmas_elf::program::Type::Load))
+        .map(|segment| get_page_range(segment))
+        .collect()
+}
+
+fn get_page_range(header: ProgramHeader) -> PageRangeInclusive {
+    let virt_start_addr = VirtAddr::new(header.virtual_addr());
+    let mem_size = header.mem_size();
+    let start_page = Page::containing_address(virt_start_addr);
+    let end_page = Page::containing_address(virt_start_addr + mem_size - 1u64);
+    Page::range_inclusive(start_page, end_page)
 }

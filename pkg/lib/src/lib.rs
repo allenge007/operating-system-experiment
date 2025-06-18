@@ -55,6 +55,7 @@ macro_rules! errln {
 pub fn _print(args: Arguments) {
     use core::fmt::Write;
     let _ = stdout().write_fmt(args);
+    stdout().flush();
 }
 
 #[doc(hidden)]

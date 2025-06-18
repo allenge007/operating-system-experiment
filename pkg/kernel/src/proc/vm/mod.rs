@@ -1,4 +1,5 @@
 use alloc::{format, vec::Vec};
+use boot::KernelPages;
 use x86_64::{
     structures::paging::{
         mapper::{CleanUp, UnmapError},
@@ -71,8 +72,23 @@ impl ProcessVm {
     //     self
     // }
 
-    pub fn init_kernel_vm(mut self) -> Self {
-        // TODO: record kernel code usage
+    pub fn init_kernel_vm(mut self, pages: &KernelPages) -> Self {
+        // DONE: load `self.code` and `self.code_usage` from `pages`
+        self.code = pages.iter().cloned().collect();
+        
+        let mut total_usage: u64 = 0;
+        for range in self.code.iter() {
+            total_usage += range.count() as u64 * Size4KiB::SIZE;
+        }
+        self.code_usage = total_usage;
+        info!(
+            "Kernel code usage: {} bytes, {} sections",
+            self.code_usage,
+            self.code.len()
+        );
+        // DONE: init kernel stack (impl the const `kstack` function)
+        //        `pub const fn kstack() -> Self`
+        //         use consts to init stack, same with kernel config
         self.stack = Stack::kstack();
         self
     }
@@ -166,6 +182,8 @@ impl ProcessVm {
 
         // NOTE: maybe print how many frames are recycled
         //       **you may need to add some functions to `BootInfoFrameAllocator`**
+        let recycled_count_after_cleanup = dealloc.frames_recycled_count();
+        info!("Frames recycled after this cleanup: {} (this is a cumulative count from allocator)", recycled_count_after_cleanup);
 
         Ok(())
     }
@@ -181,5 +199,15 @@ impl core::fmt::Debug for ProcessVm {
             .field("memory_usage", &format!("{} {}", size, unit))
             .field("page_table", &self.page_table)
             .finish()
+    }
+}
+
+impl Drop for ProcessVm {
+    fn drop(&mut self) {
+        trace!("Dropping ProcessVm, initiating cleanup...");
+        if let Err(err) = self.clean_up() {
+            error!("Failed to clean up process memory: {:?}", err);
+        }
+        trace!("ProcessVm drop complete.");
     }
 }

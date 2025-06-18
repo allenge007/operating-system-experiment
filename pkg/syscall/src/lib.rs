@@ -21,6 +21,7 @@ pub enum Syscall {
     WaitPid = 61,
     Kill = 62,
     Sem = 66,
+    Brk = 67,
 
     ListApp = 65529,
     Stat = 65530,
