@@ -265,6 +265,7 @@ fn main() -> isize {
                 let file_path_arg = line[1];
                 let absolute_file_path = normalize_path(&current_working_directory, file_path_arg);
                 services::cat_file(&absolute_file_path);
+                println!("\ncat: {}", absolute_file_path);
             }
             &"cd" => {
                 if line.len() < 2 {
